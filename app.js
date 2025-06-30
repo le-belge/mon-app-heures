@@ -11,6 +11,8 @@ let currentUser = "";
 let currentWeek = "S23";
 let data = JSON.parse(localStorage.getItem("heures")) || {};
 
+console.log("JS chargé !");
+
 function checkLogin() {
   const pass = document.getElementById("password").value.trim();
   if (passwords[pass]) {
@@ -92,6 +94,7 @@ function loadWeek() {
     tablesContainer.appendChild(createUserTable(currentUser, currentWeek, days, dates));
     renderSummary(false, currentUser);
   }
+  calculateTotal();
 }
 
 function createUserTable(user, week, days, dates) {
@@ -129,48 +132,55 @@ function saveWeek() {
   localStorage.setItem("heures", JSON.stringify(data));
 }
 
-function renderSummary(isAdmin, userName) {
-  const summaryContainer = document.getElementById("summaryContainer");
-  summaryContainer.innerHTML = isAdmin ? "<h3>Récapitulatif des totaux par ouvrier</h3>" : "<h3>Récapitulatif de vos heures</h3>";
+function calculateTotal() {
+  let total = 0;
+  let usersToCalculate = [];
 
-  const table = document.createElement("table");
-  const thead = document.createElement("thead");
-  thead.innerHTML = "<tr><th>Ouvrier</th><th>Total heures</th><th>Delta vs 40h</th></tr>";
-  table.appendChild(thead);
-
-  const tbody = document.createElement("tbody");
-
-  if (isAdmin) {
-    Object.keys(data[currentWeek]).forEach(user => {
-      if (user === "Admin") return;
-      let total = 0;
-      data[currentWeek][user].forEach(h => {
-        if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
-          const [hh, mm] = h.split(":").map(Number);
-          total += hh + mm / 60;
-        }
-      });
-      const delta = total - 40;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${user}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
-      tbody.appendChild(tr);
-    });
+  if (currentUser === "Admin") {
+    usersToCalculate = Object.keys(passwords).filter(p => passwords[p] !== "Admin").map(p => passwords[p]);
   } else {
-    let total = 0;
-    data[currentWeek][userName].forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
-        const [hh, mm] = h.split(":").map(Number);
-        total += hh + mm / 60;
-      }
-    });
-    const delta = total - 40;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${userName}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
+    usersToCalculate = [currentUser];
   }
 
-  table.appendChild(tbody);
-  summaryContainer.appendChild(table);
+  let overallTotal = 0;
+  usersToCalculate.forEach(user => {
+    const times = data[currentWeek][user] || ["", "", "", "", ""];
+    let userTotal = 0;
+    times.forEach(t => {
+      if (t && !["Congé", "Maladie", "Formation"].includes(t)) {
+        const [h, m] = t.split(":").map(Number);
+        userTotal += h + m / 60;
+      }
+    });
+    if (user === currentUser) {
+      total = userTotal;
+    }
+    overallTotal += userTotal;
+  });
+
+  document.getElementById("weekTotal").textContent = total.toFixed(2);
+  const delta = total - 40;
+  const deltaEl = document.getElementById("delta");
+  deltaEl.textContent = (delta > 0 ? "+" : "") + delta.toFixed(2);
+  deltaEl.className = delta > 0 ? "positive" : delta < 0 ? "negative" : "";
+
+  if (currentUser === "Admin") {
+    console.log(`Total global semaine ${currentWeek} : ${overallTotal.toFixed(2)}h`);
+  }
+}
+
+function newWeek() {
+  let next = "S" + (parseInt(currentWeek.slice(1)) + 1);
+  if (!data[next]) data[next] = {};
+  Object.keys(passwords).forEach(pass => {
+    const user = passwords[pass];
+    if (user === "Admin") return;
+    if (!data[next][user]) data[next][user] = ["", "", "", "", ""];
+  });
+  currentWeek = next;
+  initWeekSelector();
+  document.getElementById("weekSelector").value = currentWeek;
+  loadWeek();
 }
 
 function exportCSV() {
