@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pointage des heures</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="login">
+    <h2>Connexion</h2>
+    <input type="password" id="password" placeholder="Mot de passe">
+    <button onclick="checkLogin()">Valider</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
+
+  <div id="app" style="display:none;">
+    <h2 id="welcome"></h2>
+    <select id="weekSelector" onchange="loadWeek()"></select>
+    <button onclick="logout()">🔙 Déconnexion</button>
+    <div id="tablesContainer"></div>
+    <div id="summaryContainer" style="margin-top: 30px;"></div>
+    <p>Total semaine : <span id="weekTotal"></span> h</p>
+    <p>Δ vs 40h : <span id="delta"></span> h</p>
+    <button onclick="saveWeek()">💾 Sauvegarder</button>
+    <button onclick="newWeek()">➕ Nouvelle semaine</button>
+    <button onclick="exportCSV()">📥 Export CSV</button>
+    <button onclick="exportJSON()">💾 Export JSON</button>
+    <input type="file" id="importFile" onchange="importJSON()">
+    <button onclick="printAll()">🖨 Imprimer PDF global</button>
+
+    <datalist id="absences">
+      <option value="Congé"></option>
+      <option value="Maladie"></option>
+      <option value="Formation"></option>
+    </datalist>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
