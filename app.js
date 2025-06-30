@@ -1,3 +1,10 @@
+
+
+
+window.onerror = function(message, source, lineno, colno, error) {
+  alert(`Erreur JS : ${message} à la ligne ${lineno}`);
+};
+
 const passwords = {
   "nm08110": "Michael",
   "ra08110": "Alexandre",
