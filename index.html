@@ -20,9 +20,13 @@
     <button onclick="logout()">🔙 Déconnexion</button>
     <div id="tablesContainer"></div>
     <div id="summaryContainer" style="margin-top: 30px;"></div>
+    <p>Total semaine : <span id="weekTotal"></span> h</p>
+    <p>Δ vs 40h : <span id="delta"></span> h</p>
     <button onclick="saveWeek()">💾 Sauvegarder</button>
+    <button onclick="exportCSV()">📥 Export CSV</button>
+    <button onclick="exportJSON()">💾 Export JSON</button>
+    <button onclick="printAll()">🖨 Imprimer PDF</button>
 
-    <!-- ✅ Suggestions absences -->
     <datalist id="absences">
       <option value="Congé"></option>
       <option value="Maladie"></option>
@@ -44,10 +48,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
-    console.log("✅ Firebase v8 initialisé, db disponible globalement");
+    console.log("✅ Firebase v8 initialisé, db global");
   </script>
 
-  <!-- Ton app -->
   <script src="app.js"></script>
 </body>
 </html>

@@ -34,7 +34,7 @@ function logout() {
 function initWeekSelector() {
   const selector = document.getElementById("weekSelector");
   selector.innerHTML = "";
-  for (let i = 23; i <= 28; i++) {
+  for (let i = 23; i <= 52; i++) {
     let opt = document.createElement("option");
     opt.value = "S" + i;
     opt.text = "S" + i;
@@ -54,13 +54,11 @@ function loadWeek() {
     .get()
     .then(snapshot => {
       localData[currentWeek] = {};
-
       snapshot.forEach(doc => {
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = [d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi];
       });
 
-      // ✅ Toujours créer des entrées vides si admin
       if (currentUser === "Admin") {
         Object.values(passwords).forEach(user => {
           if (user !== "Admin" && !localData[currentWeek][user]) {
@@ -69,7 +67,6 @@ function loadWeek() {
         });
       }
 
-      // ✅ Affichage des tableaux
       if (currentUser === "Admin") {
         Object.keys(localData[currentWeek]).forEach(user => {
           tablesContainer.appendChild(createUserTable(user, localData[currentWeek][user]));
@@ -121,7 +118,7 @@ function saveWeek() {
     jours.forEach(h => {
       if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
         let [hh, mm] = h.split(":").map(Number);
-        total += hh + mm / 60;
+        total += hh + (mm || 0) / 60;
       }
     });
     let delta = total - 40;
@@ -156,7 +153,7 @@ function renderSummary(isAdmin, userName) {
       jours.forEach(h => {
         if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
           let [hh, mm] = h.split(":").map(Number);
-          total += hh + mm / 60;
+          total += hh + (mm || 0) / 60;
         }
       });
       let delta = total - 40;
@@ -170,7 +167,7 @@ function renderSummary(isAdmin, userName) {
     jours.forEach(h => {
       if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
         let [hh, mm] = h.split(":").map(Number);
-        total += hh + mm / 60;
+        total += hh + (mm || 0) / 60;
       }
     });
     let delta = total - 40;
@@ -180,4 +177,39 @@ function renderSummary(isAdmin, userName) {
   }
   table.appendChild(tbody);
   summaryContainer.appendChild(table);
+}
+
+// Exports
+function exportCSV() {
+  let csv = "Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Total,Delta\n";
+  Object.keys(localData[currentWeek]).forEach(user => {
+    let jours = localData[currentWeek][user];
+    let total = 0;
+    jours.forEach(h => {
+      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+        let [hh, mm] = h.split(":").map(Number);
+        total += hh + (mm || 0) / 60;
+      }
+    });
+    let delta = total - 40;
+    csv += `${currentWeek},${user},${jours.join(",")},${total.toFixed(2)},${delta.toFixed(2)}\n`;
+  });
+  let blob = new Blob([csv], { type: "text/csv" });
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentWeek}.csv`;
+  a.click();
+}
+
+function exportJSON() {
+  let data = localData[currentWeek];
+  let blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentWeek}.json`;
+  a.click();
+}
+
+function printAll() {
+  window.print();
 }
