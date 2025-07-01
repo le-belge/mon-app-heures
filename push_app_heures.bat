@@ -1,11 +1,11 @@
 @echo off
-F:
-cd "mon app heures"
-
+echo -------------------------------------------------
+echo Deploiement GitHub Pages pour mon app heures
+echo -------------------------------------------------
+cd /d "F:\mon app heures"
 git add .
-git commit -m "Mise à jour fichiers corrigés app heures"
-git pull origin main --rebase
-git push origin main
-
+git commit -m "maj auto via batch"
+git push
+echo -------------------------------------------------
+echo Fini !
 pause
-
