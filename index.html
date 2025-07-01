@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pointage des heures</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
@@ -23,7 +24,7 @@
     <button onclick="saveWeek()">💾 Sauvegarder</button>
   </div>
 
-  <!-- ✅ Charger Firebase -->
+  <!-- Charger Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
   <script>
@@ -39,7 +40,7 @@
     const db = firebase.firestore();
   </script>
 
-  <!-- ✅ Charger ton app après Firebase -->
+  <!-- Ton script -->
   <script src="app.js"></script>
 </body>
 </html>

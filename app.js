@@ -54,20 +54,22 @@ function loadWeek() {
     .get()
     .then(snapshot => {
       localData[currentWeek] = {};
+
       snapshot.forEach(doc => {
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = [d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi];
       });
 
-      // ✅ Si aucun doc trouvé, créer les entrées vides
-      if (Object.keys(localData[currentWeek]).length === 0 && currentUser === "Admin") {
+      // ✅ Toujours créer des entrées vides si admin
+      if (currentUser === "Admin") {
         Object.values(passwords).forEach(user => {
-          if (user !== "Admin") {
+          if (user !== "Admin" && !localData[currentWeek][user]) {
             localData[currentWeek][user] = ["", "", "", "", ""];
           }
         });
       }
 
+      // ✅ Affichage des tableaux
       if (currentUser === "Admin") {
         Object.keys(localData[currentWeek]).forEach(user => {
           tablesContainer.appendChild(createUserTable(user, localData[currentWeek][user]));
@@ -134,7 +136,7 @@ function saveWeek() {
       total: total.toFixed(2),
       delta: delta.toFixed(2),
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => console.log(`Enregistré ${user} semaine ${currentWeek}`));
+    }).then(() => console.log(`✅ Enregistré ${user} ${currentWeek}`));
   });
   alert("Heures sauvegardées dans Firestore");
   loadWeek();
