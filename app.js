@@ -216,7 +216,7 @@ function saveWeek() {
 
   Promise.all(promises).then(() => {
     alert("Heures sauvegardées dans Firestore");
-    loadWeek(); 
+    loadWeek();
   });
 }
 
