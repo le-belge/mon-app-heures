@@ -103,6 +103,15 @@ function createUserTable(user, jours) {
   const container = document.createElement("div");
   const title = document.createElement("h3");
   title.textContent = user + " - " + currentWeek;
+
+  if (currentUser === "Admin") {
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "🗑 Reset";
+    resetBtn.onclick = () => resetHours(user);
+    resetBtn.style.marginLeft = "10px";
+    title.appendChild(resetBtn);
+  }
+
   container.appendChild(title);
 
   const table = document.createElement("table");
@@ -119,6 +128,51 @@ function createUserTable(user, jours) {
   table.appendChild(tbody);
   container.appendChild(table);
   return container;
+}
+
+function resetHours(user) {
+  localData[currentWeek][user] = ["", "", "", "", ""];
+  db.collection("heures")
+    .where("semaine", "==", currentWeek)
+    .where("ouvrier", "==", user)
+    .get()
+    .then(snapshot => {
+      if (!snapshot.empty) {
+        snapshot.forEach(doc => {
+          db.collection("heures").doc(doc.id).set({
+            semaine: currentWeek,
+            ouvrier: user,
+            lundi: "",
+            mardi: "",
+            mercredi: "",
+            jeudi: "",
+            vendredi: "",
+            total: "0.00",
+            delta: "0.00",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            console.log(`✅ Remis à zéro ${user} ${currentWeek}`);
+            loadWeek();
+          });
+        });
+      } else {
+        db.collection("heures").add({
+          semaine: currentWeek,
+          ouvrier: user,
+          lundi: "",
+          mardi: "",
+          mercredi: "",
+          jeudi: "",
+          vendredi: "",
+          total: "0.00",
+          delta: "0.00",
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          console.log(`✅ Créé vide ${user} ${currentWeek}`);
+          loadWeek();
+        });
+      }
+    });
 }
 
 function saveWeek() {
@@ -254,3 +308,9 @@ function exportJSON() {
 function printAll() {
   window.print();
 }
+
+document.getElementById("password").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    checkLogin();
+  }
+});
