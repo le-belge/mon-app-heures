@@ -1,6 +1,6 @@
 const passwords = {
-  "nm08110": "Mike",
-  "ra08110": "Alex",
+  "nm08110": "Mika",
+  "ra08110": "Renaud",
   "rb08110": "Ben",
   "lm08110": "Marc",
   "do08110": "Oliv",
