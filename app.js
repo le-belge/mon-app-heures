@@ -59,6 +59,15 @@ function loadWeek() {
         localData[currentWeek][d.ouvrier] = [d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi];
       });
 
+      // ✅ Si aucun doc trouvé, créer les entrées vides
+      if (Object.keys(localData[currentWeek]).length === 0 && currentUser === "Admin") {
+        Object.values(passwords).forEach(user => {
+          if (user !== "Admin") {
+            localData[currentWeek][user] = ["", "", "", "", ""];
+          }
+        });
+      }
+
       if (currentUser === "Admin") {
         Object.keys(localData[currentWeek]).forEach(user => {
           tablesContainer.appendChild(createUserTable(user, localData[currentWeek][user]));
@@ -125,7 +134,7 @@ function saveWeek() {
       total: total.toFixed(2),
       delta: delta.toFixed(2),
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }).then(() => console.log(`Enregistré ${user} semaine ${currentWeek}`));
   });
   alert("Heures sauvegardées dans Firestore");
   loadWeek();
