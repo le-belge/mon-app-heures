@@ -140,33 +140,29 @@ function resetHours(user) {
     .where("ouvrier", "==", user)
     .get()
     .then(snapshot => {
+      let ops = [];
       if (!snapshot.empty) {
         snapshot.forEach(doc => {
-          db.collection("heures").doc(doc.id).set({
+          ops.push(db.collection("heures").doc(doc.id).set({
             semaine: currentWeek,
             ouvrier: user,
             lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
             samedi: "", dimanche: "",
             total: "0.00", delta: "0.00",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => {
-            console.log(`✅ Remis à zéro ${user} ${currentWeek}`);
-            loadWeek();
-          });
+          }));
         });
       } else {
-        db.collection("heures").add({
+        ops.push(db.collection("heures").add({
           semaine: currentWeek,
           ouvrier: user,
           lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
           samedi: "", dimanche: "",
           total: "0.00", delta: "0.00",
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-          console.log(`✅ Créé vide ${user} ${currentWeek}`);
-          loadWeek();
-        });
+        }));
       }
+      Promise.all(ops).then(() => loadWeek());
     });
 }
 
@@ -179,6 +175,8 @@ function saveWeek() {
     localData[currentWeek][user][day] = input.value;
   });
 
+  let promises = [];
+
   Object.keys(localData[currentWeek]).forEach(user => {
     let jours = localData[currentWeek][user];
     let total = 0;
@@ -190,36 +188,38 @@ function saveWeek() {
     });
     let delta = total - 40;
 
-    db.collection("heures")
+    let p = db.collection("heures")
       .where("semaine", "==", currentWeek)
       .where("ouvrier", "==", user)
       .get()
       .then(querySnapshot => {
         if (!querySnapshot.empty) {
-          querySnapshot.forEach(doc => {
+          return Promise.all(querySnapshot.docs.map(doc =>
             db.collection("heures").doc(doc.id).set({
-              semaine: currentWeek,
-              ouvrier: user,
+              semaine: currentWeek, ouvrier: user,
               lundi: jours[0], mardi: jours[1], mercredi: jours[2],
               jeudi: jours[3], vendredi: jours[4], samedi: jours[5], dimanche: jours[6],
               total: total.toFixed(2), delta: delta.toFixed(2),
               timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => console.log(`✅ Mis à jour ${user} ${currentWeek}`));
-          });
+            })
+          ));
         } else {
-          db.collection("heures").add({
-            semaine: currentWeek,
-            ouvrier: user,
+          return db.collection("heures").add({
+            semaine: currentWeek, ouvrier: user,
             lundi: jours[0], mardi: jours[1], mercredi: jours[2],
             jeudi: jours[3], vendredi: jours[4], samedi: jours[5], dimanche: jours[6],
             total: total.toFixed(2), delta: delta.toFixed(2),
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => console.log(`✅ Créé ${user} ${currentWeek}`));
+          });
         }
       });
+    promises.push(p);
   });
-  alert("Heures sauvegardées dans Firestore");
-  loadWeek();
+
+  Promise.all(promises).then(() => {
+    alert("Heures sauvegardées dans Firestore");
+    loadWeek(); // auto recharge à jour
+  });
 }
 
 function renderSummary(isAdmin, userName) {
