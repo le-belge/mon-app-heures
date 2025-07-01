@@ -14,18 +14,20 @@ table {
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 30px;
+  table-layout: fixed;
 }
 
 th, td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: center;
-  word-break: break-word;
+  word-wrap: break-word;
 }
 
 input[list='absences'], input[type='text'], input[type='password'] {
-  width: 100px;
+  width: 90%;
   padding: 4px;
+  box-sizing: border-box;
 }
 
 button {
@@ -34,7 +36,7 @@ button {
   cursor: pointer;
 }
 
-/* ✅ Mobile responsive */
+/* ✅ Mobile : réduire encore + rendre scrollable si nécessaire */
 @media (max-width: 600px) {
   body {
     margin: 10px;
@@ -42,16 +44,19 @@ button {
   }
 
   table {
-    width: 100%;
     font-size: 12px;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 
   th, td {
     padding: 5px;
+    min-width: 60px;
   }
 
   input[list='absences'], input[type='text'], input[type='password'] {
-    width: 80px;
+    width: 100%;
     font-size: 14px;
   }
 
