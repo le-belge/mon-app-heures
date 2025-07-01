@@ -144,8 +144,7 @@ function resetHours(user) {
       if (!snapshot.empty) {
         snapshot.forEach(doc => {
           ops.push(db.collection("heures").doc(doc.id).set({
-            semaine: currentWeek,
-            ouvrier: user,
+            semaine: currentWeek, ouvrier: user,
             lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
             samedi: "", dimanche: "",
             total: "0.00", delta: "0.00",
@@ -154,8 +153,7 @@ function resetHours(user) {
         });
       } else {
         ops.push(db.collection("heures").add({
-          semaine: currentWeek,
-          ouvrier: user,
+          semaine: currentWeek, ouvrier: user,
           lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
           samedi: "", dimanche: "",
           total: "0.00", delta: "0.00",
@@ -181,7 +179,7 @@ function saveWeek() {
     let jours = localData[currentWeek][user];
     let total = 0;
     jours.forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
         let [hh, mm] = h.split(":").map(Number);
         total += hh + (mm || 0) / 60;
       }
@@ -218,7 +216,7 @@ function saveWeek() {
 
   Promise.all(promises).then(() => {
     alert("Heures sauvegardées dans Firestore");
-    loadWeek(); // auto recharge à jour
+    loadWeek(); 
   });
 }
 
@@ -234,7 +232,7 @@ function renderSummary(isAdmin, userName) {
     jours.forEach(h => {
       if (h === "Congé") conges++;
       if (h === "Maladie") maladies++;
-      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
         let [hh, mm] = h.split(":").map(Number);
         total += hh + (mm || 0) / 60;
       }
@@ -261,7 +259,7 @@ function exportCSV() {
     let jours = localData[currentWeek][user];
     let total = 0;
     jours.forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
         let [hh, mm] = h.split(":").map(Number);
         total += hh + (mm || 0) / 60;
       }
