@@ -9,54 +9,9 @@ const passwords = {
 
 let currentUser = "";
 let currentWeek = "S23";
-let data = JSON.parse(localStorage.getItem("heures")) || {};
+let localData = {};
 
 console.log("JS chargé !");
-
-// Récap avant loadWeek
-function renderSummary(isAdmin, userName) {
-  const summaryContainer = document.getElementById("summaryContainer");
-  summaryContainer.innerHTML = isAdmin ? "<h3>Récapitulatif des totaux par ouvrier</h3>" : "<h3>Récapitulatif de vos heures</h3>";
-
-  const table = document.createElement("table");
-  const thead = document.createElement("thead");
-  thead.innerHTML = "<tr><th>Ouvrier</th><th>Total heures</th><th>Delta vs 40h</th></tr>";
-  table.appendChild(thead);
-
-  const tbody = document.createElement("tbody");
-
-  if (isAdmin) {
-    Object.keys(data[currentWeek]).forEach(user => {
-      if (user === "Admin") return;
-      let total = 0;
-      data[currentWeek][user].forEach(h => {
-        if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
-          const [hh, mm] = h.split(":").map(Number);
-          total += hh + mm / 60;
-        }
-      });
-      const delta = total - 40;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${user}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
-      tbody.appendChild(tr);
-    });
-  } else {
-    let total = 0;
-    data[currentWeek][userName].forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
-        const [hh, mm] = h.split(":").map(Number);
-        total += hh + mm / 60;
-      }
-    });
-    const delta = total - 40;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${userName}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  summaryContainer.appendChild(table);
-}
 
 function checkLogin() {
   const pass = document.getElementById("password").value.trim();
@@ -73,11 +28,7 @@ function checkLogin() {
 }
 
 function logout() {
-  currentUser = "";
-  document.getElementById("app").style.display = "none";
-  document.getElementById("login").style.display = "block";
-  document.getElementById("password").value = "";
-  document.getElementById("loginError").textContent = "";
+  location.reload();
 }
 
 function initWeekSelector() {
@@ -92,20 +43,6 @@ function initWeekSelector() {
   }
 }
 
-function getMondayDateOfWeek(year, week) {
-  const simple = new Date(year, 0, 1 + (week - 1) * 7);
-  const dow = simple.getDay();
-  if (dow <= 4)
-    simple.setDate(simple.getDate() - simple.getDay() + 1);
-  else
-    simple.setDate(simple.getDate() + 8 - simple.getDay());
-  return simple;
-}
-
-function formatDate(date) {
-  return ("0" + date.getDate()).slice(-2) + "/" + ("0" + (date.getMonth() + 1)).slice(-2);
-}
-
 function loadWeek() {
   currentWeek = document.getElementById("weekSelector").value;
   const tablesContainer = document.getElementById("tablesContainer");
@@ -113,53 +50,46 @@ function loadWeek() {
   tablesContainer.innerHTML = "";
   summaryContainer.innerHTML = "";
 
-  const year = new Date().getFullYear();
-  const weekNumber = parseInt(currentWeek.slice(1));
-  const monday = getMondayDateOfWeek(year, weekNumber);
-  const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
-  const dates = [];
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    dates.push(formatDate(d));
-  }
+  db.collection("heures").where("semaine", "==", currentWeek)
+    .get()
+    .then(snapshot => {
+      localData[currentWeek] = {};
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        localData[currentWeek][d.ouvrier] = [d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi];
+      });
 
-  if (!data[currentWeek]) data[currentWeek] = {};
-
-  if (currentUser === "Admin") {
-    Object.keys(passwords).forEach(pass => {
-      const user = passwords[pass];
-      if (user === "Admin") return;
-      if (!data[currentWeek][user]) data[currentWeek][user] = ["", "", "", "", ""];
-      tablesContainer.appendChild(createUserTable(user, currentWeek, days, dates));
+      if (currentUser === "Admin") {
+        Object.keys(localData[currentWeek]).forEach(user => {
+          tablesContainer.appendChild(createUserTable(user, localData[currentWeek][user]));
+        });
+        renderSummary(true);
+      } else {
+        let data = localData[currentWeek][currentUser] || ["", "", "", "", ""];
+        tablesContainer.appendChild(createUserTable(currentUser, data));
+        renderSummary(false, currentUser);
+      }
     });
-    renderSummary(true);
-  } else {
-    if (!data[currentWeek][currentUser]) data[currentWeek][currentUser] = ["", "", "", "", ""];
-    tablesContainer.appendChild(createUserTable(currentUser, currentWeek, days, dates));
-    renderSummary(false, currentUser);
-  }
 }
 
-function createUserTable(user, week, days, dates) {
+function createUserTable(user, jours) {
+  const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const container = document.createElement("div");
   const title = document.createElement("h3");
-  title.textContent = user + " - " + week;
+  title.textContent = user + " - " + currentWeek;
   container.appendChild(title);
 
   const table = document.createElement("table");
   const thead = document.createElement("thead");
-  thead.innerHTML = "<tr><th>Jour</th><th>Date</th><th>Heures</th></tr>";
+  thead.innerHTML = "<tr><th>Jour</th><th>Heures</th></tr>";
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-
-  data[week][user].forEach((val, i) => {
+  days.forEach((day, i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${days[i]}</td><td>${dates[i]}</td><td><input list="absences" type="text" value="${val}" data-user="${user}" data-day="${i}" placeholder="hh:mm ou congé"></td>`;
+    tr.innerHTML = `<td>${day}</td><td><input list="absences" type="text" value="${jours[i] || ""}" data-user="${user}" data-day="${i}"></td>`;
     tbody.appendChild(tr);
   });
-
   table.appendChild(tbody);
   container.appendChild(table);
   return container;
@@ -170,62 +100,73 @@ function saveWeek() {
   inputs.forEach(input => {
     const user = input.getAttribute("data-user");
     const day = input.getAttribute("data-day");
-    if (!data[currentWeek][user]) data[currentWeek][user] = ["", "", "", "", ""];
-    data[currentWeek][user][day] = input.value;
+    if (!localData[currentWeek][user]) localData[currentWeek][user] = ["", "", "", "", ""];
+    localData[currentWeek][user][day] = input.value;
   });
-  localStorage.setItem("heures", JSON.stringify(data));
-}
 
-function exportCSV() {
-  let csv = "Semaine;Ouvrier;Lundi;Mardi;Mercredi;Jeudi;Vendredi;Total;Delta\n";
-  Object.keys(data).forEach(sem => {
-    Object.keys(data[sem]).forEach(u => {
-      let t = 0;
-      let jours = data[sem][u].map(e => {
-        if (e && !["Congé", "Maladie", "Formation"].includes(e)) {
-          let [h, m] = e.split(":").map(Number);
-          t += h + m / 60;
-        }
-        return e;
-      });
-      csv += `${sem};${u};${jours.join(";")};${t.toFixed(2)};${(t - 40).toFixed(2)}\n`;
+  Object.keys(localData[currentWeek]).forEach(user => {
+    let jours = localData[currentWeek][user];
+    let total = 0;
+    jours.forEach(h => {
+      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+        let [hh, mm] = h.split(":").map(Number);
+        total += hh + mm / 60;
+      }
+    });
+    let delta = total - 40;
+    db.collection("heures").add({
+      semaine: currentWeek,
+      ouvrier: user,
+      lundi: jours[0],
+      mardi: jours[1],
+      mercredi: jours[2],
+      jeudi: jours[3],
+      vendredi: jours[4],
+      total: total.toFixed(2),
+      delta: delta.toFixed(2),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
   });
-  downloadFile(csv, "heures.csv");
-}
-
-function exportJSON() {
-  downloadFile(JSON.stringify(data), "heures.json");
-}
-
-function importJSON() {
-  const file = document.getElementById("importFile").files[0];
-  const reader = new FileReader();
-  reader.onload = e => {
-    data = JSON.parse(e.target.result);
-    localStorage.setItem("heures", JSON.stringify(data));
-    loadWeek();
-  };
-  reader.readAsText(file);
-}
-
-function downloadFile(content, fileName) {
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], { type: "text/plain" }));
-  a.download = fileName;
-  a.click();
-}
-
-function newWeek() {
-  let next = "S" + (parseInt(currentWeek.slice(1)) + 1);
-  if (!data[next]) data[next] = {};
-  Object.keys(passwords).forEach(pass => {
-    const user = passwords[pass];
-    if (user === "Admin") return;
-    if (!data[next][user]) data[next][user] = ["", "", "", "", ""];
-  });
-  currentWeek = next;
-  initWeekSelector();
-  document.getElementById("weekSelector").value = currentWeek;
+  alert("Heures sauvegardées dans Firestore");
   loadWeek();
+}
+
+function renderSummary(isAdmin, userName) {
+  const summaryContainer = document.getElementById("summaryContainer");
+  summaryContainer.innerHTML = isAdmin ? "<h3>Récapitulatif des totaux</h3>" : "<h3>Vos heures</h3>";
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+
+  if (isAdmin) {
+    Object.keys(localData[currentWeek]).forEach(user => {
+      let jours = localData[currentWeek][user];
+      let total = 0;
+      jours.forEach(h => {
+        if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+          let [hh, mm] = h.split(":").map(Number);
+          total += hh + mm / 60;
+        }
+      });
+      let delta = total - 40;
+      let tr = document.createElement("tr");
+      tr.innerHTML = `<td>${user}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+  } else {
+    let jours = localData[currentWeek][userName] || ["", "", "", "", ""];
+    let total = 0;
+    jours.forEach(h => {
+      if (h && !["Congé", "Maladie", "Formation"].includes(h)) {
+        let [hh, mm] = h.split(":").map(Number);
+        total += hh + mm / 60;
+      }
+    });
+    let delta = total - 40;
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td>${userName}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  summaryContainer.appendChild(table);
 }

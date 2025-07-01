@@ -5,7 +5,6 @@
   <title>Pointage des heures</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
-
 </head>
 <body>
   <div id="login">
@@ -21,22 +20,23 @@
     <button onclick="logout()">🔙 Déconnexion</button>
     <div id="tablesContainer"></div>
     <div id="summaryContainer" style="margin-top: 30px;"></div>
-    <p>Total semaine : <span id="weekTotal"></span> h</p>
-    <p>Δ vs 40h : <span id="delta"></span> h</p>
     <button onclick="saveWeek()">💾 Sauvegarder</button>
-    <button onclick="newWeek()">➕ Nouvelle semaine</button>
-    <button onclick="exportCSV()">📥 Export CSV</button>
-    <button onclick="exportJSON()">💾 Export JSON</button>
-    <input type="file" id="importFile" onchange="importJSON()">
-    <button onclick="printAll()">🖨 Imprimer PDF global</button>
-
-    <datalist id="absences">
-      <option value="Congé"></option>
-      <option value="Maladie"></option>
-      <option value="Formation"></option>
-    </datalist>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
+      authDomain: "pointage-heures.firebaseapp.com",
+      projectId: "pointage-heures",
+      storageBucket: "pointage-heures.firebasestorage.app",
+      messagingSenderId: "392363086555",
+      appId: "1:392363086555:web:6bfe7f166214443e86b2fe"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
