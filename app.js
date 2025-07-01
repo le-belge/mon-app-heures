@@ -10,6 +10,7 @@ const passwords = {
 let currentUser = "";
 let currentWeek = "S23";
 let localData = {};
+let datesSemaine = [];
 
 console.log("JS chargé !");
 
@@ -43,8 +44,25 @@ function initWeekSelector() {
   }
 }
 
+function getDatesOfWeek(weekNumber) {
+  const year = new Date().getFullYear();
+  const simple = new Date(year, 0, 1 + (weekNumber - 1) * 7);
+  const dow = simple.getDay();
+  let monday = simple;
+  if (dow <= 4) monday.setDate(simple.getDate() - simple.getDay() + 1);
+  else monday.setDate(simple.getDate() + 8 - simple.getDay());
+  let dates = [];
+  for (let i = 0; i < 5; i++) {
+    let d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push( ("0"+d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) );
+  }
+  return dates;
+}
+
 function loadWeek() {
   currentWeek = document.getElementById("weekSelector").value;
+  datesSemaine = getDatesOfWeek(parseInt(currentWeek.slice(1)));
   const tablesContainer = document.getElementById("tablesContainer");
   const summaryContainer = document.getElementById("summaryContainer");
   tablesContainer.innerHTML = "";
@@ -89,13 +107,13 @@ function createUserTable(user, jours) {
 
   const table = document.createElement("table");
   const thead = document.createElement("thead");
-  thead.innerHTML = "<tr><th>Jour</th><th>Heures</th></tr>";
+  thead.innerHTML = "<tr><th>Jour</th><th>Date</th><th>Heures</th></tr>";
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
   days.forEach((day, i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${day}</td><td><input list="absences" type="text" value="${jours[i] || ""}" data-user="${user}" data-day="${i}"></td>`;
+    tr.innerHTML = `<td>${day}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i] || ""}" data-user="${user}" data-day="${i}"></td>`;
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -179,7 +197,6 @@ function renderSummary(isAdmin, userName) {
   summaryContainer.appendChild(table);
 }
 
-// Exports
 function exportCSV() {
   let csv = "Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Total,Delta\n";
   Object.keys(localData[currentWeek]).forEach(user => {
