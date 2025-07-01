@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pointage des heures</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:,">
 </head>
 <body>
   <div id="login">
@@ -24,7 +23,7 @@
     <button onclick="saveWeek()">💾 Sauvegarder</button>
   </div>
 
-  <!-- Charger Firebase d'abord -->
+  <!-- Charger Firebase et initialiser -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
   <script>
@@ -38,10 +37,8 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    console.log("✅ Firebase et Firestore initialisés");
   </script>
-
-  <!-- Initialisation Firestore (à retirer après premier lancement) -->
-  <script src="initFirestore.js"></script>
 
   <!-- Ton app principale -->
   <script src="app.js"></script>
