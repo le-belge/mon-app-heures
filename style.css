@@ -6,14 +6,10 @@ body {
   margin-right: auto;
 }
 
-h2, h3 {
-  margin-top: 30px;
-}
-
 table {
   border-collapse: collapse;
   width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 th, td {
@@ -22,45 +18,12 @@ th, td {
   text-align: center;
 }
 
-input[list='absences'], input[type='text'] {
-  width: 100px;
+input {
   padding: 4px;
-}
-
-input[type='password'] {
-  width: 200px;
-  padding: 5px;
 }
 
 button {
   margin: 5px;
   padding: 8px 12px;
   cursor: pointer;
-}
-
-/* ✅ Responsive léger */
-@media (max-width: 600px) {
-  body {
-    margin: 10px;
-    font-size: 14px;
-  }
-
-  table {
-    font-size: 12px;
-  }
-
-  th, td {
-    padding: 6px;
-  }
-
-  input[list='absences'], input[type='text'], input[type='password'] {
-    width: 80px;
-    font-size: 14px;
-  }
-
-  button {
-    display: block;
-    width: 100%;
-    margin: 6px 0;
-  }
 }
