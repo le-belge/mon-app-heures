@@ -1,10 +1,9 @@
-console.log("⚡ Script d'initialisation Firestore démarré...");
+console.log("⚡ Initialisation Firestore...");
 
 const semaines = [];
 for (let i = 23; i <= 52; i++) {
   semaines.push("S" + i);
 }
-
 const ouvriers = ["Mike", "Alex", "Ben", "Marc", "Oliv"];
 
 semaines.forEach(semaine => {
@@ -24,4 +23,4 @@ semaines.forEach(semaine => {
   });
 });
 
-console.log("🚀 Initialisation terminée (attends 2-3 sec pour voir en BDD).");
+console.log("🚀 Init terminé, vérifie dans Firestore.");
