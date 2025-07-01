@@ -23,9 +23,9 @@
     <button onclick="saveWeek()">💾 Sauvegarder</button>
   </div>
 
-  <!-- Charger Firebase et initialiser -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+  <!-- ✅ Charger Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
@@ -37,10 +37,13 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    console.log("✅ Firebase et Firestore initialisés");
+    console.log("✅ Firebase compat initialisé, db disponible");
   </script>
 
-  <!-- Ton app principale -->
+  <!-- Initialisation (à retirer après premier run) -->
+  <script src="initFirestore.js"></script>
+  
+  <!-- Ton app -->
   <script src="app.js"></script>
 </body>
 </html>
