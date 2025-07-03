@@ -76,6 +76,7 @@ function loadWeek() {
       localData[currentWeek] = {};
       snapshot.forEach(doc => {
         const d = doc.data();
+        // blindé : prend les jours même s'ils n'existent pas encore
         localData[currentWeek][d.ouvrier] = [
           d.lundi || "", d.mardi || "", d.mercredi || "", d.jeudi || "",
           d.vendredi || "", d.samedi || "", d.dimanche || "", d.commentaire || ""
