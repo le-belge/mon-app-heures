@@ -11,7 +11,7 @@ let currentUser = "";
 let currentWeek = "S23";
 let localData = {};
 let datesSemaine = [];
-let currentMonth = 7; // par défaut Juillet pour tester
+let currentMonth = new Date().getMonth() + 1; // par défaut mois actuel
 
 console.log("JS chargé !");
 
@@ -77,8 +77,8 @@ function loadWeek() {
       snapshot.forEach(doc => {
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = [
-          d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi,
-          d.samedi || "", d.dimanche || "", d.commentaire || ""
+          d.lundi || "", d.mardi || "", d.mercredi || "", d.jeudi || "",
+          d.vendredi || "", d.samedi || "", d.dimanche || "", d.commentaire || ""
         ];
       });
 
@@ -116,15 +116,18 @@ function createUserTable(user, jours) {
   const tbody = document.createElement("tbody");
   days.forEach((day, i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${day}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i] || ""}" data-user="${user}" data-day="${i}"></td>`;
+    let val = jours && jours[i] ? jours[i] : "";
+    tr.innerHTML = `<td>${day}</td><td>${datesSemaine[i]}</td>
+    <td><input list="absences" type="text" value="${val}" data-user="${user}" data-day="${i}"></td>`;
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
   container.appendChild(table);
 
+  const comment = jours && jours[7] ? jours[7] : "";
   const commentBox = document.createElement("textarea");
   commentBox.placeholder = "Commentaire pour " + user;
-  commentBox.value = jours[7] || "";
+  commentBox.value = comment;
   commentBox.onchange = () => saveComment(user, currentWeek, commentBox.value);
   container.appendChild(commentBox);
 
@@ -213,3 +216,9 @@ function printAll() {
   document.title = "Recap_" + namePart;
   window.print();
 }
+
+document.getElementById("password").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    checkLogin();
+  }
+});
