@@ -42,13 +42,13 @@ function initWeekSelector() {
 function getDatesOfWeek(weekNum) {
   const year = new Date().getFullYear();
   const firstDay = new Date(year, 0, 1 + (weekNum - 1) * 7);
-  const dayOfWeek = firstDay.getDay();
+  const dow = firstDay.getDay();
   const monday = new Date(firstDay);
-  monday.setDate(firstDay.getDate() - ((dayOfWeek + 6) % 7));
+  monday.setDate(firstDay.getDate() - ((dow + 6) % 7));
   return Array.from({ length: 5 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2);
+    return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2);
   });
 }
 
@@ -83,9 +83,7 @@ function loadWeek() {
         html += `<div class="user-block">
                    <h3>${u} - ${currentWeek}</h3>
                    <table>
-                     <thead>
-                       <tr><th>Jour</th><th>Date</th><th>Heures</th></tr>
-                     </thead>
+                     <thead><tr><th>Jour</th><th>Date</th><th>Heures</th></tr></thead>
                      <tbody>`;
         ["Lundi","Mardi","Mercredi","Jeudi","Vendredi"].forEach((day, i) => {
           html += `<tr>
@@ -102,17 +100,20 @@ function loadWeek() {
       container.innerHTML = html;
     })
     .catch(err => {
-      console.error("Erreur Firestore loadWeek:", err);
-      container.innerHTML = "<p style='color:red;'>Erreur de chargement, regarde la console.</p>";
+      console.error("Erreur loadWeek:", err);
+      container.innerHTML = "<p style='color:red;'>Erreur de chargement, voir console</p>";
     });
 }
 
 function saveWeek() {
   const inputs = document.querySelectorAll("#tablesContainer input");
   inputs.forEach(input => {
-    const u = input.getAttribute('data-user');
-    const d = input.getAttribute('data-day');
-    const value = input.value;
+    const u = input.getAttribute("data-user");
+    const d = parseInt(input.getAttribute("data-day"), 10);
+    const val = input.value;
+    const champs = ["lundi","mardi","mercredi","jeudi","vendredi"];
+    const update = {};
+    update[champs[d]] = val;
     db.collection("heures")
       .where("semaine", "==", currentWeek)
       .where("ouvrier", "==", u)
@@ -120,21 +121,16 @@ function saveWeek() {
       .then(snap => {
         if (snap.empty) {
           const obj = { semaine: currentWeek, ouvrier: u };
-          obj[['lundi','mardi','mercredi','jeudi','vendredi'][d]] = value;
+          obj[champs[d]] = val;
           db.collection("heures").add(obj);
         } else {
-          snap.forEach(doc => {
-            const update = {};
-            update[['lundi','mardi','mercredi','jeudi','vendredi'][d]] = value;
-            doc.ref.set(update, { merge: true });
-          });
+          snap.forEach(doc => doc.ref.set(update, { merge: true }));
         }
       });
   });
-  alert('Enregistré');
+  alert("Enregistré");
   loadWeek();
 }
 
-document.getElementById("password").addEventListener('keydown', e => {
-  if (e.key === 'Enter') checkLogin();
-});
+document.getElementById("password")
+  .addEventListener("keydown", e => { if (e.key === "Enter") checkLogin(); });
