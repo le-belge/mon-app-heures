@@ -2,9 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pointage des heures</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:,">
 </head>
 <body>
   <div id="login">
@@ -16,31 +16,43 @@
 
   <div id="app" style="display:none;">
     <h2 id="welcome"></h2>
+
+    <div id="adminControls" style="display:none;">
+      <label>Sélectionner un mois :</label>
+      <select id="monthSelector">
+        <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+        <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+        <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+        <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+      </select>
+      <button onclick="loadMonthlyRecap()">📊 Calculer recap mensuel</button>
+      <div>
+        <textarea id="adminNote" placeholder="Note administrative sur la période..."></textarea>
+        <button onclick="saveAdminNote()">💬 Sauvegarder note admin</button>
+      </div>
+    </div>
+
     <select id="weekSelector" onchange="loadWeek()"></select>
     <button onclick="logout()">🔙 Déconnexion</button>
     <div id="tablesContainer"></div>
-    <div id="summaryContainer" style="margin-top: 30px;"></div>
-    <p>Total semaine : <span id="weekTotal"></span> h</p>
-    <p>Δ vs 40h : <span id="delta"></span> h</p>
+    <div id="summaryContainer" style="margin-top:30px;"></div>
     <button onclick="saveWeek()">💾 Sauvegarder</button>
     <button onclick="exportCSV()">📥 Export CSV</button>
-    <button onclick="exportJSON()">💾 Export JSON</button>
-    <button onclick="printAll()">🖨 Imprimer PDF</button>
-
-    <datalist id="absences">
-  <option value="Congé"></option>
-  <option value="Maladie"></option>
-  <option value="Formation"></option>
-  <option value="Férié"></option>
-</datalist>
-
+    <button onclick="printAll()">🖨 Imprimer PDF global</button>
   </div>
 
-  <!-- ✅ Firebase v8 ultra compatible -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <datalist id="absences">
+    <option value="Congé"></option>
+    <option value="Maladie"></option>
+    <option value="Formation"></option>
+    <option value="Férié"></option>
+  </datalist>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
   <script>
-    var firebaseConfig = {
+    const firebaseConfig = {
       apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
       authDomain: "pointage-heures.firebaseapp.com",
       projectId: "pointage-heures",
@@ -49,8 +61,7 @@
       appId: "1:392363086555:web:6bfe7f166214443e86b2fe"
     };
     firebase.initializeApp(firebaseConfig);
-    var db = firebase.firestore();
-    console.log("✅ Firebase v8 initialisé, db global");
+    const db = firebase.firestore();
   </script>
 
   <script src="app.js"></script>

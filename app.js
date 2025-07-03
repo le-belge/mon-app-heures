@@ -11,6 +11,7 @@ let currentUser = "";
 let currentWeek = "S23";
 let localData = {};
 let datesSemaine = [];
+let currentMonth = 7; // par défaut Juillet pour tester
 
 console.log("JS chargé !");
 
@@ -21,6 +22,7 @@ function checkLogin() {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
     document.getElementById("welcome").textContent = "Bienvenue " + currentUser;
+    if (currentUser === "Admin") document.getElementById("adminControls").style.display = "block";
     initWeekSelector();
     loadWeek();
   } else {
@@ -76,14 +78,14 @@ function loadWeek() {
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = [
           d.lundi, d.mardi, d.mercredi, d.jeudi, d.vendredi,
-          d.samedi || "", d.dimanche || ""
+          d.samedi || "", d.dimanche || "", d.commentaire || ""
         ];
       });
 
       if (currentUser === "Admin") {
         Object.values(passwords).forEach(user => {
           if (user !== "Admin" && !localData[currentWeek][user]) {
-            localData[currentWeek][user] = ["", "", "", "", "", "", ""];
+            localData[currentWeek][user] = ["", "", "", "", "", "", "", ""];
           }
         });
       }
@@ -92,11 +94,9 @@ function loadWeek() {
         Object.keys(localData[currentWeek]).forEach(user => {
           tablesContainer.appendChild(createUserTable(user, localData[currentWeek][user]));
         });
-        renderSummary(true);
       } else {
-        let data = localData[currentWeek][currentUser] || ["", "", "", "", "", "", ""];
+        let data = localData[currentWeek][currentUser] || ["", "", "", "", "", "", "", ""];
         tablesContainer.appendChild(createUserTable(currentUser, data));
-        renderSummary(false, currentUser);
       }
     });
 }
@@ -106,15 +106,6 @@ function createUserTable(user, jours) {
   const container = document.createElement("div");
   const title = document.createElement("h3");
   title.textContent = user + " - " + currentWeek;
-
-  if (currentUser === "Admin") {
-    const resetBtn = document.createElement("button");
-    resetBtn.textContent = "🗑 Reset";
-    resetBtn.onclick = () => resetHours(user);
-    resetBtn.style.marginLeft = "10px";
-    title.appendChild(resetBtn);
-  }
-
   container.appendChild(title);
 
   const table = document.createElement("table");
@@ -130,165 +121,95 @@ function createUserTable(user, jours) {
   });
   table.appendChild(tbody);
   container.appendChild(table);
+
+  const commentBox = document.createElement("textarea");
+  commentBox.placeholder = "Commentaire pour " + user;
+  commentBox.value = jours[7] || "";
+  commentBox.onchange = () => saveComment(user, currentWeek, commentBox.value);
+  container.appendChild(commentBox);
+
   return container;
 }
 
-function resetHours(user) {
-  localData[currentWeek][user] = ["", "", "", "", "", "", ""];
+function saveComment(user, week, comment) {
   db.collection("heures")
-    .where("semaine", "==", currentWeek)
-    .where("ouvrier", "==", user)
+    .where("ouvrier","==",user)
+    .where("semaine","==",week)
+    .get()
+    .then(snapshot=>{
+      snapshot.forEach(doc=>{
+        db.collection("heures").doc(doc.id).update({commentaire: comment});
+      });
+    });
+}
+
+function saveAdminNote() {
+  const note = document.getElementById("adminNote").value;
+  db.collection("notes").doc("mois_"+currentMonth).set({note: note, month: currentMonth});
+  alert("Note admin sauvegardée.");
+}
+
+function loadMonthlyRecap() {
+  currentMonth = parseInt(document.getElementById("monthSelector").value);
+  let start = new Date(new Date().getFullYear(), currentMonth-1, 1);
+  let end = new Date(new Date().getFullYear(), currentMonth, 0);
+
+  db.collection("heures")
+    .where("timestamp", ">=", start)
+    .where("timestamp", "<=", end)
     .get()
     .then(snapshot => {
-      let ops = [];
-      if (!snapshot.empty) {
-        snapshot.forEach(doc => {
-          ops.push(db.collection("heures").doc(doc.id).set({
-            semaine: currentWeek, ouvrier: user,
-            lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
-            samedi: "", dimanche: "",
-            total: "0.00", delta: "0.00",
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          }));
+      let monthlyData = {};
+      snapshot.forEach(doc => {
+        let d = doc.data();
+        if (!monthlyData[d.ouvrier]) monthlyData[d.ouvrier] = {total:0, conges:0, maladies:0, feries:0};
+        ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(day => {
+          let val = d[day];
+          if (val === "Congé") monthlyData[d.ouvrier].conges++;
+          else if (val === "Maladie") monthlyData[d.ouvrier].maladies++;
+          else if (val === "Férié") monthlyData[d.ouvrier].feries++;
+          else if (val) {
+            let [hh, mm] = val.split(":").map(Number);
+            monthlyData[d.ouvrier].total += hh + (mm || 0)/60;
+          }
         });
-      } else {
-        ops.push(db.collection("heures").add({
-          semaine: currentWeek, ouvrier: user,
-          lundi: "", mardi: "", mercredi: "", jeudi: "", vendredi: "",
-          samedi: "", dimanche: "",
-          total: "0.00", delta: "0.00",
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }));
-      }
-      Promise.all(ops).then(() => loadWeek());
-    });
-}
-
-function saveWeek() {
-  const inputs = document.querySelectorAll("input[list='absences']");
-  inputs.forEach(input => {
-    const user = input.getAttribute("data-user");
-    const day = input.getAttribute("data-day");
-    if (!localData[currentWeek][user]) localData[currentWeek][user] = ["", "", "", "", "", "", ""];
-    localData[currentWeek][user][day] = input.value;
-  });
-
-  let promises = [];
-
-  Object.keys(localData[currentWeek]).forEach(user => {
-    let jours = localData[currentWeek][user];
-    let total = 0;
-    jours.forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
-        let [hh, mm] = h.split(":").map(Number);
-        total += hh + (mm || 0) / 60;
-      }
-    });
-    let delta = total - 40;
-
-    let p = db.collection("heures")
-      .where("semaine", "==", currentWeek)
-      .where("ouvrier", "==", user)
-      .get()
-      .then(querySnapshot => {
-        if (!querySnapshot.empty) {
-          return Promise.all(querySnapshot.docs.map(doc =>
-            db.collection("heures").doc(doc.id).set({
-              semaine: currentWeek, ouvrier: user,
-              lundi: jours[0], mardi: jours[1], mercredi: jours[2],
-              jeudi: jours[3], vendredi: jours[4], samedi: jours[5], dimanche: jours[6],
-              total: total.toFixed(2), delta: delta.toFixed(2),
-              timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-          ));
-        } else {
-          return db.collection("heures").add({
-            semaine: currentWeek, ouvrier: user,
-            lundi: jours[0], mardi: jours[1], mercredi: jours[2],
-            jeudi: jours[3], vendredi: jours[4], samedi: jours[5], dimanche: jours[6],
-            total: total.toFixed(2), delta: delta.toFixed(2),
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }
       });
-    promises.push(p);
-  });
-
-  Promise.all(promises).then(() => {
-    alert("Heures sauvegardées dans Firestore");
-    loadWeek();
-  });
+      renderMonthlySummary(monthlyData);
+    });
 }
 
-function renderSummary(isAdmin, userName) {
+function renderMonthlySummary(monthlyData) {
   const summaryContainer = document.getElementById("summaryContainer");
-  summaryContainer.innerHTML = isAdmin ? "<h3>Récapitulatif des totaux</h3>" : "<h3>Vos heures</h3>";
+  summaryContainer.innerHTML = "<h3>Récapitulatif mensuel</h3>";
   const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th><th>Congés</th><th>Maladie</th></tr></thead>";
+  table.innerHTML = "<thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladies</th><th>Férié</th></tr></thead>";
   const tbody = document.createElement("tbody");
 
-  const computeRow = (user, jours) => {
-    let total = 0, conges = 0, maladies = 0;
-    jours.forEach(h => {
-      if (h === "Congé") conges++;
-      if (h === "Maladie") maladies++;
-      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
-        let [hh, mm] = h.split(":").map(Number);
-        total += hh + (mm || 0) / 60;
-      }
-    });
-    let delta = total - 40;
-    return `<tr><td>${user}</td><td>${total.toFixed(2)}</td><td style="color:${delta>0?'green':delta<0?'orange':'black'}">${delta>=0?"+":""}${delta.toFixed(2)}</td><td>${conges}</td><td>${maladies}</td></tr>`;
-  };
-
-  if (isAdmin) {
-    Object.keys(localData[currentWeek]).forEach(user => {
-      tbody.innerHTML += computeRow(user, localData[currentWeek][user]);
-    });
-  } else {
-    tbody.innerHTML += computeRow(userName, localData[currentWeek][userName] || ["", "", "", "", "", "", ""]);
-  }
+  Object.keys(monthlyData).forEach(user => {
+    let d = monthlyData[user];
+    tbody.innerHTML += `<tr><td>${user}</td><td>${d.total.toFixed(2)}</td><td>${d.conges}</td><td>${d.maladies}</td><td>${d.feries}</td></tr>`;
+  });
 
   table.appendChild(tbody);
   summaryContainer.appendChild(table);
 }
 
 function exportCSV() {
-  let csv = "Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche,Total,Delta\n";
+  let namePart = currentWeek + "_M" + currentMonth;
+  let csv = "Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche,Commentaire\n";
   Object.keys(localData[currentWeek]).forEach(user => {
     let jours = localData[currentWeek][user];
-    let total = 0;
-    jours.forEach(h => {
-      if (h && !["Congé", "Maladie", "Formation", "Férié"].includes(h)) {
-        let [hh, mm] = h.split(":").map(Number);
-        total += hh + (mm || 0) / 60;
-      }
-    });
-    let delta = total - 40;
-    csv += `${currentWeek},${user},${jours.join(",")},${total.toFixed(2)},${delta.toFixed(2)}\n`;
+    csv += `${currentWeek},${user},${jours.join(",")}\n`;
   });
   let blob = new Blob([csv], { type: "text/csv" });
   let a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${currentWeek}.csv`;
-  a.click();
-}
-
-function exportJSON() {
-  let data = localData[currentWeek];
-  let blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${currentWeek}.json`;
+  a.download = `Recap_${namePart}.csv`;
   a.click();
 }
 
 function printAll() {
+  let namePart = currentWeek + "_M" + currentMonth;
+  document.title = "Recap_" + namePart;
   window.print();
 }
-
-document.getElementById("password").addEventListener("keydown", function(e) {
-  if (e.key === "Enter") {
-    checkLogin();
-  }
-});
