@@ -11,7 +11,7 @@ let currentUser = "";
 let currentWeek = "S23";
 let localData = {};
 let datesSemaine = [];
-let currentMonth = new Date().getMonth() + 1; // par défaut mois actuel
+let currentMonth = new Date().getMonth() + 1;
 
 console.log("JS chargé !");
 
@@ -116,7 +116,7 @@ function createUserTable(user, jours) {
   const tbody = document.createElement("tbody");
   days.forEach((day, i) => {
     const tr = document.createElement("tr");
-    let val = jours && jours[i] ? jours[i] : "";
+    let val = (jours && jours.length > i && jours[i] !== undefined) ? jours[i] : "";
     tr.innerHTML = `<td>${day}</td><td>${datesSemaine[i]}</td>
     <td><input list="absences" type="text" value="${val}" data-user="${user}" data-day="${i}"></td>`;
     tbody.appendChild(tr);
@@ -124,7 +124,7 @@ function createUserTable(user, jours) {
   table.appendChild(tbody);
   container.appendChild(table);
 
-  const comment = jours && jours[7] ? jours[7] : "";
+  const comment = (jours && jours[7]) ? jours[7] : "";
   const commentBox = document.createElement("textarea");
   commentBox.placeholder = "Commentaire pour " + user;
   commentBox.value = comment;
