@@ -9,7 +9,6 @@ const passwords = {
 
 let currentUser = "";
 let currentWeek = "S23";
-let localData = {};
 let datesSemaine = [];
 
 console.log("JS chargé !");
@@ -62,10 +61,10 @@ function loadWeek() {
   db.collection("heures").where("semaine", "==", currentWeek)
     .get()
     .then(snapshot => {
-      localData[currentWeek] = {};
+      const rowsByUser = {};
       snapshot.forEach(doc => {
         const d = doc.data();
-        localData[currentWeek][d.ouvrier] = [
+        rowsByUser[d.ouvrier] = [
           d.lundi || "",
           d.mardi || "",
           d.mercredi || "",
@@ -73,35 +72,39 @@ function loadWeek() {
           d.vendredi || ""
         ];
       });
-      const users = currentUser === "Admin"
+
+      const users = (currentUser === "Admin")
         ? Object.values(passwords).filter(u => u !== "Admin")
         : [currentUser];
-      users.forEach(u => {
-        if (!localData[currentWeek][u]) localData[currentWeek][u] = ["", "", "", "", ""];
-        container.appendChild(renderTable(u, localData[currentWeek][u]));
-      });
-    });
-}
 
-function renderTable(user, days) {
-  const div = document.createElement("div");
-  div.innerHTML = `
-    <h3>${user} - ${currentWeek}</h3>
-    <table>
-      <thead>
-        <tr><th>Jour</th><th>Date</th><th>Heures</th></tr>
-      </thead>
-      <tbody>
-        ${['Lundi','Mardi','Mercredi','Jeudi','Vendredi'].map((day, i) =>
-          `<tr>
-            <td>${day}</td>
-            <td>${datesSemaine[i]}</td>
-            <td><input type="text" value="${days[i]}" data-user="${user}" data-day="${i}"></td>
-          </tr>`
-        ).join('')}
-      </tbody>
-    </table>`;
-  return div;
+      let html = "";
+      users.forEach(u => {
+        const jours = rowsByUser[u] || ["", "", "", "", ""];
+        html += `<div class="user-block">
+                   <h3>${u} - ${currentWeek}</h3>
+                   <table>
+                     <thead>
+                       <tr><th>Jour</th><th>Date</th><th>Heures</th></tr>
+                     </thead>
+                     <tbody>`;
+        ["Lundi","Mardi","Mercredi","Jeudi","Vendredi"].forEach((day, i) => {
+          html += `<tr>
+                     <td>${day}</td>
+                     <td>${datesSemaine[i]}</td>
+                     <td><input type="text" value="${jours[i]}" data-user="${u}" data-day="${i}"></td>
+                   </tr>`;
+        });
+        html += `  </tbody>
+                   </table>
+                 </div>`;
+      });
+
+      container.innerHTML = html;
+    })
+    .catch(err => {
+      console.error("Erreur Firestore loadWeek:", err);
+      container.innerHTML = "<p style='color:red;'>Erreur de chargement, regarde la console.</p>";
+    });
 }
 
 function saveWeek() {
@@ -109,36 +112,22 @@ function saveWeek() {
   inputs.forEach(input => {
     const u = input.getAttribute('data-user');
     const d = input.getAttribute('data-day');
-    localData[currentWeek][u][d] = input.value;
-  });
-  Object.entries(localData[currentWeek]).forEach(([u, jours]) => {
+    const value = input.value;
     db.collection("heures")
       .where("semaine", "==", currentWeek)
       .where("ouvrier", "==", u)
       .get()
       .then(snap => {
         if (snap.empty) {
-          db.collection("heures").add({
-            semaine: currentWeek,
-            ouvrier: u,
-            lundi: jours[0],
-            mardi: jours[1],
-            mercredi: jours[2],
-            jeudi: jours[3],
-            vendredi: jours[4]
-          });
+          const obj = { semaine: currentWeek, ouvrier: u };
+          obj[['lundi','mardi','mercredi','jeudi','vendredi'][d]] = value;
+          db.collection("heures").add(obj);
         } else {
-          snap.forEach(doc =>
-            doc.ref.set({
-              semaine: currentWeek,
-              ouvrier: u,
-              lundi: jours[0],
-              mardi: jours[1],
-              mercredi: jours[2],
-              jeudi: jours[3],
-              vendredi: jours[4]
-            }, { merge: true })
-          );
+          snap.forEach(doc => {
+            const update = {};
+            update[['lundi','mardi','mercredi','jeudi','vendredi'][d]] = value;
+            doc.ref.set(update, { merge: true });
+          });
         }
       });
   });
