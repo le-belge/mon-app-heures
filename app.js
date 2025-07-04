@@ -207,6 +207,64 @@ function saveAdminNote() {
   alert("Note admin sauvegardée");
 }
 
+function getMonthName(monthNumber) {
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                      "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  return monthNames[monthNumber - 1];
+}
+
+function exportMonthlyRecapCSV() {
+  const selectedMonth = parseInt(document.getElementById("monthSelector").value, 10);
+  const year = new Date().getFullYear();
+  const monthName = getMonthName(selectedMonth);
+
+  const start = new Date(year, selectedMonth - 1, 1);
+  const end = new Date(year, selectedMonth, 0);
+
+  db.collection("heures")
+    .where("timestamp", ">=", start)
+    .where("timestamp", "<=", end)
+    .get()
+    .then(snap => {
+      const aggregatedData = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        aggregatedData[d.ouvrier] = aggregatedData[d.ouvrier] || { total: 0, conges: 0, maladies: 0, feries: 0 };
+        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach(day => {
+          const v = d[day];
+          if (v === "Congé") aggregatedData[d.ouvrier].conges++;
+          else if (v === "Maladie") aggregatedData[d.ouvrier].maladies++;
+          else if (v === "Férié") aggregatedData[d.ouvrier].feries++;
+          else if (v) {
+            const [hh, mm] = v.split(":").map(Number);
+            aggregatedData[d.ouvrier].total += hh + (mm || 0) / 60;
+          }
+        });
+      });
+
+      let csvContent = "Mois,Ouvrier,Total Heures,Congés (jours),Maladie (jours),Férié (jours)\n";
+      Object.entries(aggregatedData).forEach(([worker, data]) => {
+        csvContent += `${monthName} ${year},${worker},${data.total.toFixed(2)},${data.conges},${data.maladies},${data.feries}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Recap_Mensuel_${monthName}_${year}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    })
+    .catch(err => {
+      console.error("Erreur export récap mensuel CSV:", err);
+      alert("Erreur lors de la génération du CSV.");
+    });
+}
+
 function loadMonthlyRecap() {
   currentMonth = parseInt(document.getElementById("monthSelector").value, 10);
   const start = new Date(new Date().getFullYear(), currentMonth - 1, 1);
