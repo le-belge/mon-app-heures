@@ -1,4 +1,4 @@
-// ======= TON ANCIEN INIT FIREBASE =========
+// ======= TON INIT FIREBASE (gardé tel quel) =========
 const firebaseConfig = {
   apiKey: "xxxxxxxxxxxxxxxxxxxxx",
   authDomain: "xxxxxxxx.firebaseapp.com",
@@ -10,7 +10,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ======= PUIS LE NOUVEAU APP.JS AMÉLIORÉ =========
+// ======= TON APP.JS CORRIGÉ POUR RESTAURER TES HEURES =========
 const passwords = {
   "nm08110": "Mike",
   "ra08110": "Renaud",
@@ -88,7 +88,8 @@ function loadWeek() {
   tablesContainer.innerHTML = "";
   summaryContainer.innerHTML = "";
 
-  db.collection("heures").where("semaine","==",currentWeek).get()
+  // LA CORRECTION EST ICI
+  db.collection("heures").where("semaine","==", currentWeek.slice(1)).get()
     .then(snapshot=>{
       localData[currentWeek] = {};
       snapshot.forEach(doc=>{
@@ -127,7 +128,7 @@ function attachCommentListeners() {
       const user = e.target.dataset.user;
       const comment = e.target.value;
       db.collection('heures')
-        .where('semaine','==',currentWeek)
+        .where('semaine','==',currentWeek.slice(1))
         .where('ouvrier','==',user)
         .get().then(snap=>{
           snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
@@ -160,9 +161,9 @@ function saveWeek() {
     const u = input.dataset.user; const d = parseInt(input.dataset.day);
     const field = ["lundi","mardi","mercredi","jeudi","vendredi"][d];
     const val = input.value;
-    db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
+    db.collection("heures").where("semaine","==",currentWeek.slice(1)).where("ouvrier","==",u).get()
       .then(snap=>{
-        if(snap.empty){ const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; db.collection("heures").add(obj);} 
+        if(snap.empty){ const obj={semaine:currentWeek.slice(1),ouvrier:u}; obj[field]=val; db.collection("heures").add(obj);} 
         else snap.forEach(doc=>doc.ref.set({[field]:val},{merge:true}));
       });
   });
@@ -195,7 +196,7 @@ function loadMonthlyRecap() {
   db.collection("heures").get().then(snap=>{
     snap.forEach(doc=>{
       const d=doc.data();
-      const wnum=parseInt(d.semaine.slice(1));
+      const wnum=parseInt(d.semaine);
       const monday = getDatesOfWeek(wnum)[0];
       const m = monday.getMonth()+1;
       if(m===currentMonth){
