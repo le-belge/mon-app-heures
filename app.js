@@ -46,7 +46,7 @@ function checkLogin() {
     initWeekSelector();
     loadWeek();
     loadMonthlyRecap();
-    if(currentUser==="Admin") loadYearlyRecap();
+    loadYearlyRecap();
   } else {
     document.getElementById("loginError").textContent = "Mot de passe incorrect.";
   }
@@ -109,14 +109,23 @@ function loadWeek() {
       renderSummary(currentUser==="Admin", currentUser);
       attachCommentListeners();
       loadMonthlyRecap();
-      if(currentUser==="Admin") loadYearlyRecap();
+      loadYearlyRecap();
     }).catch(err=> console.error("Erreur loadWeek:",err));
 }
 
 function buildTableHTML(user, jours) {
-  let html = `<div class="user-block"><h3>${user} - ${currentWeek}</h3><table><thead><tr><th>Jour</th><th>Date</th><th>Heures</th></tr></thead><tbody>`;
+  let html = `<div class="user-block"><h3>${user} - ${currentWeek}</h3><table><thead><tr><th>Jour</th><th>Date</th><th>Heures / État</th></tr></thead><tbody>`;
   days.forEach((day,i)=>{
-    html += `<tr><td>${day.charAt(0).toUpperCase()+day.slice(1)}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i]}" data-user="${user}" data-day="${i}"></td></tr>`;
+    html += `<tr><td>${day.charAt(0).toUpperCase()+day.slice(1)}</td><td>${datesSemaine[i]}</td><td>
+      <select data-user="${user}" data-day="${i}">
+        <option value="${jours[i]}">${jours[i]}</option>
+        <option value=""></option>
+        <option value="Congé">Congé</option>
+        <option value="Maladie">Maladie</option>
+        <option value="Férié">Férié</option>
+        <option value="Formation">Formation</option>
+      </select>
+    </td></tr>`;
   });
   html += `</tbody></table><textarea class="comment-box" placeholder="Commentaire pour ${user}" data-user="${user}">${jours[7]}</textarea></div>`;
   return html;
@@ -132,9 +141,7 @@ function attachCommentListeners() {
         .where('ouvrier','==',user)
         .get().then(snap=>{
           snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
-        }).then(()=>{
-          loadWeek();
-        });
+        }).then(()=> loadWeek());
     });
   });
 }
@@ -165,7 +172,7 @@ function renderSummary(isAdmin, userName) {
 }
 
 function saveWeek() {
-  const inputs = document.querySelectorAll("#tablesContainer input");
+  const inputs = document.querySelectorAll("#tablesContainer select");
   const promises = [];
   inputs.forEach(input=>{
     const u = input.dataset.user; const d = parseInt(input.dataset.day);
@@ -184,10 +191,7 @@ function saveWeek() {
     );
   });
 
-  Promise.all(promises).then(()=>{
-    alert("Enregistré");
-    loadWeek();
-  });
+  Promise.all(promises).then(()=> loadWeek());
 }
 
 function exportCSV() {
@@ -203,88 +207,3 @@ function exportCSV() {
 }
 
 function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
-
-function loadMonthlyRecap() {
-  currentMonth = parseInt(document.getElementById("monthSelector").value,10);
-  const monthlyData={};
-  const uniqueWeekOuvrier = {};
-
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      const key = d.semaine + "_" + d.ouvrier;
-      if(!uniqueWeekOuvrier[key]) {
-        uniqueWeekOuvrier[key] = true;
-        const wnum=parseInt(d.semaine.slice(1));
-        const datesOfWeek = getDatesOfWeek(wnum);
-        days.forEach((day,i)=>{
-          const date=datesOfWeek[i];
-          if(date.getMonth()+1 === currentMonth){
-            if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
-            const v=d[day];
-            if(v==="Congé") monthlyData[d.ouvrier].conges++;
-            else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
-            else if(v==="Férié") monthlyData[d.ouvrier].feries++;
-            else if(v){
-              const parts = v.split(":");
-              const hh = parseInt(parts[0]);
-              const mm = parseInt(parts[1]||0);
-              if(!isNaN(hh)) monthlyData[d.ouvrier].total+=hh+(isNaN(mm)?0:mm/60);
-            }
-          }
-        });
-      }
-    });
-
-    let html=`<h3>Récapitulatif mensuel</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
-    Object.entries(monthlyData).forEach(([u,o])=>{
-      html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
-    });
-    html+=`</tbody></table>`;
-    if(currentUser==="Admin") document.getElementById("summaryContainer").innerHTML+=html;
-  });
-}
-
-function loadYearlyRecap() {
-  const yearlyData = {};
-  const uniqueWeekOuvrier = {};
-
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      const key = d.semaine + "_" + d.ouvrier;
-      if(!uniqueWeekOuvrier[key]) {
-        uniqueWeekOuvrier[key] = true;
-        const wnum = parseInt(d.semaine.slice(1));
-        const datesOfWeek = getDatesOfWeek(wnum);
-        days.forEach((day, i)=>{
-          const date = datesOfWeek[i];
-          const monthIndex = date.getMonth();
-          const v = d[day];
-          if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
-            const parts = v.split(":");
-            const hh = parseInt(parts[0]);
-            const mm = parseInt(parts[1]||0);
-            if(!isNaN(hh)){
-              if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
-              yearlyData[d.ouvrier][monthIndex] += hh + (isNaN(mm)?0:mm/60);
-            }
-          }
-        });
-      }
-    });
-
-    let html = "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
-    for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
-    html += "</tr></thead><tbody>";
-    Object.entries(yearlyData).forEach(([u,arr])=>{
-      html+=`<tr><td>${u}</td>`;
-      arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
-      html+="</tr>";
-    });
-    html+="</tbody></table>";
-    if(currentUser==="Admin") document.getElementById("yearlyContainer").innerHTML = html;
-  });
-}
-
-document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")checkLogin();});
