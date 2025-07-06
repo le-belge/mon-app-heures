@@ -1,3 +1,4 @@
+// ========= INIT FIREBASE ==========
 const firebaseConfig = {
   apiKey: "AIzaSyCPHCe7nziAYCyC-aArO1HiGDWqWJdIxAY",
   authDomain: "pointage-heures.firebaseapp.com",
@@ -9,6 +10,15 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ========= UTILS ==========
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
 const passwords = {
   "nm08110": "Mika",
   "ra08110": "Renaud",
@@ -19,7 +29,7 @@ const passwords = {
 };
 
 let currentUser = "";
-let currentWeek = "S23";
+let currentWeek = "S" + getWeekNumber(new Date());
 let localData = {};
 let datesSemaine = [];
 let currentMonth = new Date().getMonth() + 1;
@@ -40,6 +50,7 @@ function checkLogin() {
     }
     initWeekSelector();
     loadWeek();
+    loadMonthlyRecap(); // affiche direct recap mensuel du mois courant
   } else {
     document.getElementById("loginError").textContent = "Mot de passe incorrect.";
   }
@@ -176,43 +187,80 @@ function exportCSV() {
 
 function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
 
+function saveAdminNote() {
+  const note=document.getElementById("adminNote").value;
+  db.collection("notes").doc(`mois_${currentMonth}`).set({note,month:currentMonth});
+  alert("Note admin sauvegardée");
+}
+
 function loadMonthlyRecap() {
   currentMonth = parseInt(document.getElementById("monthSelector").value,10);
   const monthlyData={};
-
   db.collection("heures").get().then(snap=>{
     snap.forEach(doc=>{
       const d=doc.data();
       const wnum=parseInt(d.semaine.slice(1));
       const datesOfWeek = getDatesOfWeek(wnum);
-
-      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
-        const date = datesOfWeek[i];
-        const monthIndex = date.getMonth()+1; // 1-12
-
-        if(monthIndex === currentMonth){
+      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day,i)=>{
+        const date=datesOfWeek[i];
+        if(date.getMonth()+1 === currentMonth){
           if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
           const v=d[day];
           if(v==="Congé") monthlyData[d.ouvrier].conges++;
           else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
           else if(v==="Férié") monthlyData[d.ouvrier].feries++;
-          else if(v){
-            const [hh,mm]=v.split(":").map(Number);
-            monthlyData[d.ouvrier].total+=hh+(mm||0)/60;
-          }
+          else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
         }
       });
     });
-
     let html=`<h3>Récapitulatif mensuel</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
     Object.entries(monthlyData).forEach(([u,o])=>{
       html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
     });
     html+=`</tbody></table>`;
-    document.getElementById("summaryContainer").innerHTML=html;
+    document.getElementById("summaryContainer").innerHTML+=html;
   });
 }
 
+function loadYearlyRecap() {
+  const yearlyData = {};
+  db.collection("heures").get().then(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const wnum = parseInt(d.semaine.slice(1));
+      const datesOfWeek = getDatesOfWeek(wnum);
+      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
+        const date = datesOfWeek[i];
+        const monthIndex = date.getMonth();
+        const v = d[day];
+        if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
+          const [hh,mm]=v.split(":").map(Number);
+          if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
+          yearlyData[d.ouvrier][monthIndex] += hh + (mm||0)/60;
+        }
+      });
+    });
 
+    let html = "";
+    if(currentUser==="Admin"){
+      html += "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
+      for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
+      html += "</tr></thead><tbody>";
+      Object.entries(yearlyData).forEach(([u,arr])=>{
+        html+=`<tr><td>${u}</td>`;
+        arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
+        html+="</tr>";
+      });
+      html+="</tbody></table>";
+    } else {
+      html += `<h3>Vos totaux annuels</h3><table><thead><tr><th>Mois</th><th>Heures</th></tr></thead><tbody>`;
+      (yearlyData[currentUser]||[]).forEach((val,i)=>{
+        html+=`<tr><td>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</td><td>${val.toFixed(1)}</td></tr>`;
+      });
+      html+="</tbody></table>";
+    }
+    document.getElementById("yearlyContainer").innerHTML = html;
+  });
+}
 
 document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")checkLogin();});
