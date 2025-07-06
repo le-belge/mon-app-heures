@@ -1,4 +1,3 @@
-/* Reset minimal */
 * {
   margin: 0;
   padding: 0;
@@ -13,7 +12,7 @@ body {
 }
 
 #login, #app {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   background: #fff;
   padding: 20px;
@@ -28,32 +27,17 @@ header {
   margin-bottom: 20px;
 }
 
-.hours-table, .summary-table {
+textarea.comment-box {
   width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.hours-table th, .hours-table td,
-.summary-table th, .summary-table td {
+  height: 100px;
+  margin-top: 8px;
+  padding: 6px;
   border: 1px solid #ccc;
-  padding: 8px;
-  text-align: center;
-}
-
-.hours-table th, .summary-table th {
-  background: #e9e9e9;
-}
-
-input[type="text"] {
-  width: 80px;
-  padding: 4px;
-  text-align: center;
 }
 
 button {
   padding: 6px 12px;
-  margin-left: 8px;
+  margin: 4px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -65,16 +49,27 @@ button:hover {
   background: #0056b3;
 }
 
-textarea {
-  width: 100%;
-  height: 80px;
-  margin-top: 8px;
+select, input[type="text"] {
   padding: 6px;
+  margin: 4px;
 }
 
-select {
-  padding: 4px;
-  margin-left: 4px;
+.hours-table, .summary-table, table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.hours-table th, .hours-table td,
+.summary-table th, .summary-table td,
+table th, table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+.hours-table th, .summary-table th, table th {
+  background: #e9e9e9;
 }
 
 @media print {
