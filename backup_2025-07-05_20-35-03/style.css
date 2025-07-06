@@ -1,0 +1,60 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 0 10px;
+  background: #f9f9f9;
+  color: #333;
+}
+
+h2, h3 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background: #fff;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+  word-break: break-word;
+}
+
+th {
+  background: #eee;
+}
+
+input[type="text"], input[type="password"], select {
+  padding: 8px;
+  margin: 5px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button {
+  display: inline-block;
+  margin: 8px 4px;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #0066cc;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #004999;
+}
+
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  table { font-size: 12px; }
+  button { width: 100%; margin: 8px 0; }
+}
