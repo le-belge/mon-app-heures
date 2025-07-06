@@ -7,8 +7,11 @@
 </head>
 <body>
 
-<div id="login" style="text-align: center; margin-top: 50px;">
-  <img src="W11199801FIA.png" alt="Logo XLG" style="width: 200px; margin-bottom: 20px;">
+<div style="text-align: center; margin-top: 20px;">
+  <img src="W11199801FIA.png" alt="Logo XLG" style="width: 150px; margin-bottom: 10px;">
+</div>
+
+<div id="login" style="text-align: center; margin-top: 20px;">
   <h2>Connexion</h2>
   <input id="password" type="password" placeholder="Code utilisateur">
   <div id="loginError" style="color: red; margin-top: 10px;"></div>
@@ -33,6 +36,12 @@
       <option value="9">Septembre</option><option value="10">Octobre</option>
       <option value="11">Novembre</option><option value="12">Décembre</option>
     </select>
+  </div>
+
+  <div style="margin-top: 10px;">
+    <button onclick="saveWeek()">Enregistrer</button>
+    <button onclick="exportCSV()">Exporter CSV</button>
+    <button onclick="printAll()">Imprimer</button>
   </div>
 
   <div id="tablesContainer"></div>

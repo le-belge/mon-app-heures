@@ -108,6 +108,7 @@ function loadWeek() {
         tablesContainer.insertAdjacentHTML("beforeend", buildTableHTML(u, jours));
       });
       renderSummary(currentUser==="Admin", currentUser);
+      attachCommentListeners();
     }).catch(err=> console.error("Erreur loadWeek:",err));
 }
 
@@ -118,6 +119,21 @@ function buildTableHTML(user, jours) {
   });
   html += `</tbody></table><textarea class="comment-box" placeholder="Commentaire pour ${user}" data-user="${user}">${jours[5]}</textarea></div>`;
   return html;
+}
+
+function attachCommentListeners() {
+  document.querySelectorAll('textarea.comment-box').forEach(txt=>{
+    txt.addEventListener('change',e=>{
+      const user = e.target.dataset.user;
+      const comment = e.target.value;
+      db.collection('heures')
+        .where('semaine','==',currentWeek)
+        .where('ouvrier','==',user)
+        .get().then(snap=>{
+          snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
+        });
+    });
+  });
 }
 
 function renderSummary(isAdmin, userName) {
@@ -138,26 +154,62 @@ function renderSummary(isAdmin, userName) {
   summaryContainer.innerHTML = html;
 }
 
+function saveWeek() {
+  const inputs = document.querySelectorAll("#tablesContainer input");
+  inputs.forEach(input=>{
+    const u = input.dataset.user; const d = parseInt(input.dataset.day);
+    const field = ["lundi","mardi","mercredi","jeudi","vendredi"][d];
+    const val = input.value;
+    db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
+      .then(snap=>{
+        if(snap.empty){ const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; db.collection("heures").add(obj);} 
+        else snap.forEach(doc=>doc.ref.set({[field]:val},{merge:true}));
+      });
+  });
+  alert("Enregistré"); loadWeek(); loadMonthlyRecap(); if(currentUser==="Admin") loadYearlyRecap();
+}
+
+function exportCSV() {
+  const namePart = `${currentWeek}`;
+  let csv="Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Commentaire\n";
+  Object.values(passwords).filter(u=>u!="Admin").forEach(u=>{
+    const jours = localData[currentWeek][u]||[];
+    const com = jours[5]||"";
+    csv += `${currentWeek},${u},${jours.slice(0,5).join(",")},${com}\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`Heures_${namePart}.csv`; a.click();
+}
+
+function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
+
 function loadMonthlyRecap() {
   currentMonth = parseInt(document.getElementById("monthSelector").value,10);
   const monthlyData={};
+  const uniqueWeekOuvrier = {};
+
   db.collection("heures").get().then(snap=>{
     snap.forEach(doc=>{
       const d=doc.data();
-      const wnum=parseInt(d.semaine.slice(1));
-      const datesOfWeek = getDatesOfWeek(wnum);
-      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day,i)=>{
-        const date=datesOfWeek[i];
-        if(date.getMonth()+1 === currentMonth){
-          if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
-          const v=d[day];
-          if(v==="Congé") monthlyData[d.ouvrier].conges++;
-          else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
-          else if(v==="Férié") monthlyData[d.ouvrier].feries++;
-          else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
-        }
-      });
+      const key = d.semaine + "_" + d.ouvrier;
+      if(!uniqueWeekOuvrier[key]) {
+        uniqueWeekOuvrier[key] = true;
+        const wnum=parseInt(d.semaine.slice(1));
+        const datesOfWeek = getDatesOfWeek(wnum);
+        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day,i)=>{
+          const date=datesOfWeek[i];
+          if(date.getMonth()+1 === currentMonth){
+            if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
+            const v=d[day];
+            if(v==="Congé") monthlyData[d.ouvrier].conges++;
+            else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
+            else if(v==="Férié") monthlyData[d.ouvrier].feries++;
+            else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
+          }
+        });
+      }
     });
+
     let html=`<h3>Récapitulatif mensuel</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
     Object.entries(monthlyData).forEach(([u,o])=>{
       html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
@@ -169,21 +221,27 @@ function loadMonthlyRecap() {
 
 function loadYearlyRecap() {
   const yearlyData = {};
+  const uniqueWeekOuvrier = {};
+
   db.collection("heures").get().then(snap=>{
     snap.forEach(doc=>{
       const d=doc.data();
-      const wnum = parseInt(d.semaine.slice(1));
-      const datesOfWeek = getDatesOfWeek(wnum);
-      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
-        const date = datesOfWeek[i];
-        const monthIndex = date.getMonth();
-        const v = d[day];
-        if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
-          const [hh,mm]=v.split(":").map(Number);
-          if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
-          yearlyData[d.ouvrier][monthIndex] += hh + (mm||0)/60;
-        }
-      });
+      const key = d.semaine + "_" + d.ouvrier;
+      if(!uniqueWeekOuvrier[key]) {
+        uniqueWeekOuvrier[key] = true;
+        const wnum = parseInt(d.semaine.slice(1));
+        const datesOfWeek = getDatesOfWeek(wnum);
+        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
+          const date = datesOfWeek[i];
+          const monthIndex = date.getMonth();
+          const v = d[day];
+          if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
+            const [hh,mm]=v.split(":").map(Number);
+            if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
+            yearlyData[d.ouvrier][monthIndex] += hh + (mm||0)/60;
+          }
+        });
+      }
     });
 
     let html = "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
