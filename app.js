@@ -27,7 +27,7 @@ loadOuvriers();
 
 // ========= LOGIN =========
 function checkLogin() {
-  const code = document.getElementById("password").value.trim();
+  const code = document.getElementById("password")?.value.trim();
   db.collection("ouvriers").doc(code).get().then(doc=>{
     if(doc.exists) {
       currentUser = doc.data().nom;
@@ -41,10 +41,10 @@ function checkLogin() {
       adjustDisplayForRole();
       setTimeout(()=>{
         if(currentUser === "Admin") {
-          initWeekSelector();
-          loadWeek();
+          if (typeof initWeekSelector === "function") initWeekSelector();
+          if (typeof loadWeek === "function") loadWeek();
         }
-        loadMonthlyRecap();
+        if (typeof loadMonthlyRecap === "function") loadMonthlyRecap();
       }, 50);
     } else {
       const loginError = document.getElementById("loginError");
@@ -52,4 +52,42 @@ function checkLogin() {
     }
   });
 }
-document.getElementById("pass
+document.getElementById("password").addEventListener("keydown",e=>{
+  if(e.key==="Enter") checkLogin();
+});
+function logout() { location.reload(); }
+
+function adjustDisplayForRole() {
+  const tablesContainer = document.getElementById("tablesContainer");
+  const summaryContainer = document.getElementById("summaryContainer");
+  const monthlyControl = document.getElementById("monthlyControl");
+  const monthlyContainer = document.getElementById("monthlyContainer");
+
+  if(currentUser === "Admin") {
+    if(tablesContainer) tablesContainer.style.display = "block";
+    if(summaryContainer) summaryContainer.style.display = "block";
+  } else {
+    if(tablesContainer) tablesContainer.style.display = "none";
+    if(summaryContainer) summaryContainer.style.display = "none";
+  }
+  if(monthlyControl) monthlyControl.style.display = "block";
+  if(monthlyContainer) monthlyContainer.style.display = "block";
+}
+
+// ========= INIT WEEK SELECTOR PROTÉGÉ =========
+function initWeekSelector() {
+  const weekSelector = document.getElementById("weekSelector");
+  if (!weekSelector) {
+    console.error("initWeekSelector: #weekSelector introuvable");
+    return;
+  }
+
+  weekSelector.innerHTML = "";
+  for (let i = 1; i <= 52; i++) {
+    const opt = document.createElement("option");
+    opt.value = "S" + i;
+    opt.textContent = "Semaine " + i;
+    if ("S" + i === currentWeek) opt.selected = true;
+    weekSelector.appendChild(opt);
+  }
+}
