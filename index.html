@@ -17,11 +17,11 @@
     <h2 id="welcome"></h2>
     <button onclick="logout()">🔙 Déconnexion</button>
 
-    <!-- Partie admin : tableaux semaine et récap semaine -->
+    <select id="weekSelector" onchange="loadWeek()" style="margin:10px;"></select>
+
     <div id="tablesContainer"></div>
     <div id="summaryContainer" style="margin-top:20px;"></div>
 
-    <!-- Sélecteur mois pour tout le monde -->
     <div id="monthlyControl" style="margin-top:30px;">
       <label><strong>Mois :</strong></label>
       <select id="monthSelector">
