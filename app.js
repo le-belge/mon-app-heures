@@ -1,4 +1,3 @@
-// ======= Ton INIT Firebase pour pointage-heures =========
 const firebaseConfig = {
   apiKey: "AIzaSyCPHCe7nziAYCyC-aArO1HiGDWqWJdIxAY",
   authDomain: "pointage-heures.firebaseapp.com",
@@ -9,9 +8,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
-// ======= Ton app complet avec tout le code =========
-// (ce code inclut ton login, logout, textarea, sauvegarde, récap mensuel + annuel)
 
 const passwords = {
   "nm08110": "Mika",
@@ -110,7 +106,7 @@ function loadWeek() {
 }
 
 function buildTableHTML(user, jours) {
-  let html = `<div class="user-block"><h3>${user} - ${currentWeek}</h3><table class="hours-table"><thead><tr><th>Jour</th><th>Date</th><th>Heures</th></tr></thead><tbody>`;
+  let html = `<div class="user-block"><h3>${user} - ${currentWeek}</h3><table><thead><tr><th>Jour</th><th>Date</th><th>Heures</th></tr></thead><tbody>`;
   ["Lundi","Mardi","Mercredi","Jeudi","Vendredi"].forEach((day,i)=>{
     html += `<tr><td>${day}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i]}" data-user="${user}" data-day="${i}"></td></tr>`;
   });
@@ -136,8 +132,8 @@ function attachCommentListeners() {
 function renderSummary(isAdmin, userName) {
   const summaryContainer = document.getElementById("summaryContainer");
   let html = isAdmin
-    ? "<h3>Récapitulatif des totaux</h3><table class='summary-table'><thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead><tbody>"
-    : `<h3>Vos heures</h3><table class='summary-table'><thead><tr><th>Total</th><th>Delta</th></tr></thead><tbody>`;
+    ? "<h3>Récapitulatif des totaux</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead><tbody>"
+    : `<h3>Vos heures</h3><table><thead><tr><th>Total</th><th>Delta</th></tr></thead><tbody>`;
   const rows = isAdmin
     ? Object.values(passwords).filter(u=>u!="Admin").map(u=>[u, localData[currentWeek][u]||[]])
     : [[userName, localData[currentWeek][userName]||[]]];
@@ -179,80 +175,5 @@ function exportCSV() {
 }
 
 function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
-
-function saveAdminNote() {
-  const note=document.getElementById("adminNote").value;
-  db.collection("notes").doc(`mois_${currentMonth}`).set({note,month:currentMonth});
-  alert("Note admin sauvegardée");
-}
-
-function loadMonthlyRecap() {
-  currentMonth = parseInt(document.getElementById("monthSelector").value,10);
-  const monthlyData={};
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      const wnum=parseInt(d.semaine.slice(1));
-      const monday = getDatesOfWeek(wnum)[0];
-      const m = monday.getMonth()+1;
-      if(m===currentMonth){
-        if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
-        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach(day=>{
-          const v=d[day];
-          if(v==="Congé") monthlyData[d.ouvrier].conges++;
-          else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
-          else if(v==="Férié") monthlyData[d.ouvrier].feries++;
-          else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
-        });
-      }
-    });
-    let html=`<h3>Récapitulatif mensuel</h3><table class='summary-table'><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
-    Object.entries(monthlyData).forEach(([u,o])=>{
-      html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
-    });
-    html+=`</tbody></table>`;
-    document.getElementById("summaryContainer").innerHTML=html;
-  });
-}
-
-function loadYearlyRecap() {
-  const yearlyData = {};
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      const wnum = parseInt(d.semaine.slice(1));
-      const monday = getDatesOfWeek(wnum)[0];
-      const m = monday.getMonth();
-      if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
-      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach(day=>{
-        const v=d[day];
-        if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
-          const [hh,mm]=v.split(":").map(Number);
-          yearlyData[d.ouvrier][m] += hh + (mm||0)/60;
-        }
-      });
-    });
-
-    let html = "";
-    if(currentUser==="Admin"){
-      html += "<h3>Récapitulatif annuel par ouvrier</h3><table class='summary-table'><thead><tr><th>Ouvrier</th>";
-      for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
-      html += "</tr></thead><tbody>";
-      Object.entries(yearlyData).forEach(([u,arr])=>{
-        html+=`<tr><td>${u}</td>`;
-        arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
-        html+="</tr>";
-      });
-      html+="</tbody></table>";
-    } else {
-      html += `<h3>Vos totaux annuels</h3><table class='summary-table'><thead><tr><th>Mois</th><th>Heures</th></tr></thead><tbody>`;
-      (yearlyData[currentUser]||[]).forEach((val,i)=>{
-        html+=`<tr><td>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</td><td>${val.toFixed(1)}</td></tr>`;
-      });
-      html+="</tbody></table>";
-    }
-    document.getElementById("summaryContainer").innerHTML = html;
-  });
-}
 
 document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")checkLogin();});
