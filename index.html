@@ -1,49 +1,93 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pointage d'heures</title>
+  <meta charset="UTF-8" />
+  <title>Pointage des heures</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Agrandir les zones de commentaire */
+    textarea.comment-box {
+      width: 100%;
+      min-height: 60px;
+      box-sizing: border-box;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    /* Espacement des blocs utilisateurs */
+    .user-block {
+      margin-bottom: 24px;
+    }
+    /* Mettre un peu d’air pour l’adminControls */
+    #adminControls {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+    /* Style basique pour le bouton déconnexion */
+    #btnLogout {
+      margin-left: 8px;
+    }
+  </style>
 </head>
 <body>
   <div id="login">
     <h2>Connexion</h2>
-    <input id="password" type="password" placeholder="Code utilisateur" />
-    <button onclick="checkLogin()">Se connecter</button>
-    <p id="loginError"></p>
+    <input type="password" id="password" placeholder="Mot de passe">
+    <button onclick="checkLogin()">Valider</button>
+    <p id="loginError" style="color:red;"></p>
   </div>
 
-  <div id="app" style="display: none;">
-    <header>
-      <h1 id="welcome"></h1>
-      <button id="btnLogout" onclick="logout()" style="display: none;">Déconnexion</button>
-    </header>
+  <div id="app" style="display:none;">
+    <h2 id="welcome"></h2>
+    <button id="btnLogout" onclick="logout()">🔙 Déconnexion</button>
 
-    <section id="controls">
-      <label for="weekSelector">Semaine&nbsp;:</label>
-      <select id="weekSelector" onchange="loadWeek()"></select>
-      <button onclick="saveWeek()">Enregistrer</button>
-      <button onclick="exportCSV()">Exporter CSV</button>
-      <button onclick="printAll()">Imprimer</button>
-
-      <div id="adminControls" style="display: none;">
-        <h3>Admin</h3>
-        <textarea id="adminNote" placeholder="Note du mois..."></textarea>
-        <button onclick="saveAdminNote()">Sauvegarder note</button>
-        <label for="monthSelector">Mois&nbsp;:</label>
-        <select id="monthSelector" onchange="loadMonthlyRecap()">
-          <!-- options 1 à 12 -->
-        </select>
+    <!-- Contrôles admin -->
+    <div id="adminControls" style="display:none;">
+      <label><strong>Sélectionner un mois :</strong></label>
+      <select id="monthSelector">
+        <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+        <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+        <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+        <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+      </select>
+      <button onclick="loadMonthlyRecap()">📊 Récap mensuel</button>
+      <div>
+        <textarea id="adminNote" placeholder="Note administrative sur la période..." rows="3" style="width:100%; margin-top:8px;"></textarea>
+        <button onclick="saveAdminNote()">💬 Sauvegarder note admin</button>
       </div>
-    </section>
+    </div>
 
-    <div id="tablesContainer"></div>
-    <div id="summaryContainer"></div>
+    <div style="margin-top:16px;">
+      <label><strong>Sélectionner une semaine :</strong></label>
+      <select id="weekSelector" onchange="loadWeek()"></select>
+      <button onclick="saveWeek()">💾 Sauvegarder</button>
+      <button onclick="exportCSV()">📥 Export CSV</button>
+      <button onclick="printAll()">🖨 Imprimer PDF</button>
+    </div>
+
+    <div id="tablesContainer" style="margin-top:24px;"></div>
+    <div id="summaryContainer" style="margin-top:32px;"></div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <datalist id="absences">
+    <option value="Congé"></option>
+    <option value="Maladie"></option>
+    <option value="Formation"></option>
+    <option value="Férié"></option>
+  </datalist>
+
+  <!-- Firebase v9 compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
+      authDomain: "pointage-heures.firebaseapp.com",
+      projectId: "pointage-heures"
+    });
+    const db = firebase.firestore();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
