@@ -5,7 +5,7 @@ const firebaseConfig = {
   projectId: "pointage-heures"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
 
 // ========= VARIABLES =========
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
