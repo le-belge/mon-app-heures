@@ -176,4 +176,49 @@ function exportCSV() {
 
 function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
 
+function loadYearlyRecap() {
+  const yearlyData = {}; // { Mike: [0,0,0,0,0,0,0,0,0,0,0,0] }
+
+  db.collection("heures").get().then(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const wnum = parseInt(d.semaine.slice(1));
+      const datesOfWeek = getDatesOfWeek(wnum);
+
+      ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
+        const v=d[day];
+        if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
+          const date = datesOfWeek[i];
+          const monthIndex = date.getMonth(); // 0=Jan
+          const [hh,mm]=v.split(":").map(Number);
+          if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
+          yearlyData[d.ouvrier][monthIndex] += hh + (mm||0)/60;
+        }
+      });
+    });
+
+    let html = "";
+    if(currentUser==="Admin"){
+      html += "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
+      for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
+      html += "</tr></thead><tbody>";
+      Object.entries(yearlyData).forEach(([u,arr])=>{
+        html+=`<tr><td>${u}</td>`;
+        arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
+        html+="</tr>";
+      });
+      html+="</tbody></table>";
+    } else {
+      html += `<h3>Vos totaux annuels</h3><table><thead><tr><th>Mois</th><th>Heures</th></tr></thead><tbody>`;
+      (yearlyData[currentUser]||[]).forEach((val,i)=>{
+        html+=`<tr><td>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</td><td>${val.toFixed(1)}</td></tr>`;
+      });
+      html+="</tbody></table>";
+    }
+
+    document.getElementById("summaryContainer").innerHTML = html;
+  });
+}
+
+
 document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")checkLogin();});
