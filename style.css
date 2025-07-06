@@ -127,7 +127,6 @@ td[style*="orange"] {
   margin-top: 30px;
 }
 
-/* responsive pour petits écrans */
 @media (max-width: 768px) {
   .app-title img {
     width: 80px;
