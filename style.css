@@ -10,12 +10,12 @@ body {
   margin-bottom: 10px;
 }
 .app-title img {
-  width: 120px;
+  width: 100px;
 }
 .app-title h1 {
   margin-top: 5px;
-  font-size: 26px;
-  color: #c0392b; /* rouge XLG */
+  font-size: 22px;
+  color: #c0392b;
 }
 
 h2, h3 {
@@ -28,24 +28,24 @@ table {
   border-collapse: collapse;
   margin-bottom: 20px;
 }
-
 th {
-  background: #fdecea; /* rouge très pâle */
+  background: #fdecea;
   color: #c0392b;
   font-weight: bold;
 }
-
 th, td {
   border: 1px solid #bdc3c7;
   padding: 8px;
   text-align: center;
 }
-
 table tr:nth-child(even) {
   background: #fbfafa;
 }
 table tr:hover {
   background: #fbeee6;
+}
+.table-container {
+  overflow-x: auto;
 }
 
 textarea.comment-box {
@@ -59,7 +59,7 @@ textarea.comment-box {
 }
 
 button {
-  background: #c0392b; /* rouge logo */
+  background: #c0392b;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -69,12 +69,18 @@ button {
   transition: background 0.3s;
 }
 button:hover {
-  background: #992d22; /* rouge foncé */
+  background: #992d22;
 }
 
 .controls, .buttons {
   margin-top: 15px;
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.controls label, .buttons button {
+  margin: 5px;
 }
 
 select {
@@ -89,12 +95,31 @@ select {
   padding: 12px;
   margin-top: 20px;
   border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.1); /* ombre rouge */
+  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.1);
 }
 
 td[style*="green"] {
-  background: #dff0d8; /* vert pâle delta positif */
+  background: #dff0d8;
 }
 td[style*="orange"] {
-  background: #fcf8e3; /* jaune pâle delta négatif */
+  background: #fcf8e3;
+}
+
+.signature {
+  text-align: right;
+  font-size: 12px;
+  color: #777;
+  margin-top: 30px;
+}
+
+@media (max-width: 768px) {
+  .app-title img {
+    width: 80px;
+  }
+  .app-title h1 {
+    font-size: 18px;
+  }
+  table, th, td {
+    font-size: 13px;
+  }
 }
