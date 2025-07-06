@@ -155,6 +155,63 @@ function renderSummary(isAdmin, userName) {
   document.getElementById("summaryContainer").innerHTML = html;
 }
 
+
+function loadMonthlyRecap() {
+  currentMonth = parseInt(document.getElementById("monthSelector").value,10);
+  const monthlyData={};
+  db.collection("heures").get().then(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const wnum=parseInt(d.semaine.slice(1));
+      const monday = getDatesOfWeek(wnum)[0];
+      const m = monday.getMonth()+1;
+      if(m===currentMonth){
+        if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
+        days.forEach(day=>{
+          const v=d[day];
+          if(v=="Congé") monthlyData[d.ouvrier].conges++;
+          else if(v=="Maladie") monthlyData[d.ouvrier].maladies++;
+          else if(v=="Férié") monthlyData[d.ouvrier].feries++;
+          else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
+        });
+      }
+    });
+    let mc=document.getElementById("monthlyContainer"); 
+    mc.innerHTML="<h3>Récapitulatif mensuel</h3>";
+    let html=`<table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
+    Object.entries(monthlyData).forEach(([u,o])=>{
+      html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    mc.innerHTML=html;
+  }).catch(e=>console.error(e));
+}
+
+function loadYearlyRecap() {
+  const yearlyData={};
+  db.collection("heures").get().then(snap=>{
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
+      days.forEach(day=>{
+        const v=d[day];
+        if(v=="Congé") yearlyData[d.ouvrier].conges++;
+        else if(v=="Maladie") yearlyData[d.ouvrier].maladies++;
+        else if(v=="Férié") yearlyData[d.ouvrier].feries++;
+        else if(v){const [hh,mm]=v.split(":").map(Number);yearlyData[d.ouvrier].total+=hh+(mm||0)/60;}
+      });
+    });
+    let yc=document.getElementById("yearlyContainer"); 
+    yc.innerHTML="<h3>Récapitulatif annuel</h3>";
+    let html=`<table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
+    Object.entries(yearlyData).forEach(([u,o])=>{
+      html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    yc.innerHTML=html;
+  }).catch(e=>console.error(e));
+}
+
 function saveWeek() {
   const inputs = document.querySelectorAll("#tablesContainer input");
   const promises = [];
