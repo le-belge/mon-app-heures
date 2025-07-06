@@ -1,12 +1,3 @@
-// ========= INIT FIREBASE =========
-const firebaseConfig = {
-  apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-  authDomain: "pointage-heures.firebaseapp.com",
-  projectId: "pointage-heures"
-};
-firebase.initializeApp(firebaseConfig);
-
-
 // ========= VARIABLES =========
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let ouvriers = {};
@@ -65,14 +56,12 @@ function adjustDisplayForRole() {
   if(currentUser === "Admin") {
     document.getElementById("tablesContainer").style.display = "block";
     document.getElementById("summaryContainer").style.display = "block";
-    document.getElementById("monthlyControl").style.display = "block";
-    document.getElementById("monthlyContainer").style.display = "block";
   } else {
     document.getElementById("tablesContainer").style.display = "none";
     document.getElementById("summaryContainer").style.display = "none";
-    document.getElementById("monthlyControl").style.display = "block";
-    document.getElementById("monthlyContainer").style.display = "block";
   }
+  document.getElementById("monthlyControl").style.display = "block";
+  document.getElementById("monthlyContainer").style.display = "block";
 }
 
 // ========= TABLES & RECAP =========
