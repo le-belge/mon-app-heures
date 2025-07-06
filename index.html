@@ -1,57 +1,47 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pointage d'heures</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8">
+  <title>Pointage heures</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="login">
+<div id="login" style="text-align: center; margin-top: 50px;">
+  <img src="W11199801FIA.png" alt="Logo XLG" style="width: 200px; margin-bottom: 20px;">
   <h2>Connexion</h2>
-  <input id="password" type="password" placeholder="Code utilisateur" />
+  <input id="password" type="password" placeholder="Code utilisateur">
+  <div id="loginError" style="color: red; margin-top: 10px;"></div>
+  <br>
   <button onclick="checkLogin()">Se connecter</button>
-  <p id="loginError"></p>
 </div>
 
 <div id="app" style="display:none;">
-  <header>
-    <h1 id="welcome"></h1>
-    <button id="btnLogout" onclick="logout()" style="display:none;">Déconnexion</button>
-  </header>
+  <h2 id="welcome"></h2>
+  <button id="btnLogout" onclick="logout()">Déconnexion</button>
 
-  <section id="controls">
+  <div style="margin-top:20px;">
     <label for="weekSelector">Semaine :</label>
     <select id="weekSelector" onchange="loadWeek()"></select>
-    <button onclick="saveWeek()">Enregistrer</button>
-    <button onclick="exportCSV()">Exporter CSV</button>
-    <button onclick="printAll()">Imprimer</button>
 
-    <div id="adminControls" style="display:none;">
-      <h3>Admin</h3>
-      <textarea id="adminNote" placeholder="Note du mois..."></textarea>
-      <button onclick="saveAdminNote()">Sauvegarder note</button>
-      <label for="monthSelector">Mois :</label>
-      <select id="monthSelector" onchange="loadMonthlyRecap()">
-        <option value="1">Janvier</option><option value="2">Février</option>
-        <option value="3">Mars</option><option value="4">Avril</option>
-        <option value="5">Mai</option><option value="6">Juin</option>
-        <option value="7">Juillet</option><option value="8">Août</option>
-        <option value="9">Septembre</option><option value="10">Octobre</option>
-        <option value="11">Novembre</option><option value="12">Décembre</option>
-      </select>
-      <button onclick="loadYearlyRecap()">Voir récap annuel</button>
-    </div>
-  </section>
+    <label for="monthSelector" style="margin-left:20px;">Mois :</label>
+    <select id="monthSelector" onchange="loadMonthlyRecap()">
+      <option value="1">Janvier</option><option value="2">Février</option>
+      <option value="3">Mars</option><option value="4">Avril</option>
+      <option value="5">Mai</option><option value="6">Juin</option>
+      <option value="7">Juillet</option><option value="8">Août</option>
+      <option value="9">Septembre</option><option value="10">Octobre</option>
+      <option value="11">Novembre</option><option value="12">Décembre</option>
+    </select>
+  </div>
 
   <div id="tablesContainer"></div>
   <div id="summaryContainer"></div>
+  <div id="yearlyContainer"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="app.js"></script>
-
 </body>
 </html>

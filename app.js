@@ -1,4 +1,3 @@
-// ========= INIT FIREBASE ==========
 const firebaseConfig = {
   apiKey: "AIzaSyCPHCe7nziAYCyC-aArO1HiGDWqWJdIxAY",
   authDomain: "pointage-heures.firebaseapp.com",
@@ -10,7 +9,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ========= UTILS ==========
 function getWeekNumber(d) {
   d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -45,12 +43,10 @@ function checkLogin() {
     document.getElementById("app").style.display = "block";
     document.getElementById("welcome").textContent = "Bienvenue " + currentUser;
     document.getElementById("btnLogout").style.display = "inline-block";
-    if (currentUser === "Admin") {
-      document.getElementById("adminControls").style.display = "block";
-    }
     initWeekSelector();
     loadWeek();
-    loadMonthlyRecap(); // affiche direct recap mensuel du mois courant
+    loadMonthlyRecap();
+    if(currentUser==="Admin") loadYearlyRecap();
   } else {
     document.getElementById("loginError").textContent = "Mot de passe incorrect.";
   }
@@ -112,7 +108,6 @@ function loadWeek() {
         tablesContainer.insertAdjacentHTML("beforeend", buildTableHTML(u, jours));
       });
       renderSummary(currentUser==="Admin", currentUser);
-      attachCommentListeners();
     }).catch(err=> console.error("Erreur loadWeek:",err));
 }
 
@@ -123,21 +118,6 @@ function buildTableHTML(user, jours) {
   });
   html += `</tbody></table><textarea class="comment-box" placeholder="Commentaire pour ${user}" data-user="${user}">${jours[5]}</textarea></div>`;
   return html;
-}
-
-function attachCommentListeners() {
-  document.querySelectorAll('textarea.comment-box').forEach(txt=>{
-    txt.addEventListener('change',e=>{
-      const user = e.target.dataset.user;
-      const comment = e.target.value;
-      db.collection('heures')
-        .where('semaine','==',currentWeek)
-        .where('ouvrier','==',user)
-        .get().then(snap=>{
-          snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
-        });
-    });
-  });
 }
 
 function renderSummary(isAdmin, userName) {
@@ -156,41 +136,6 @@ function renderSummary(isAdmin, userName) {
   });
   html += `</tbody></table>`;
   summaryContainer.innerHTML = html;
-}
-
-function saveWeek() {
-  const inputs = document.querySelectorAll("#tablesContainer input");
-  inputs.forEach(input=>{
-    const u = input.dataset.user; const d = parseInt(input.dataset.day);
-    const field = ["lundi","mardi","mercredi","jeudi","vendredi"][d];
-    const val = input.value;
-    db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
-      .then(snap=>{
-        if(snap.empty){ const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; db.collection("heures").add(obj);} 
-        else snap.forEach(doc=>doc.ref.set({[field]:val},{merge:true}));
-      });
-  });
-  alert("Enregistré"); loadWeek();
-}
-
-function exportCSV() {
-  const namePart = `${currentWeek}`;
-  let csv="Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Commentaire\n";
-  Object.values(passwords).filter(u=>u!="Admin").forEach(u=>{
-    const jours = localData[currentWeek][u]||[];
-    const com = jours[5]||"";
-    csv += `${currentWeek},${u},${jours.slice(0,5).join(",")},${com}\n`;
-  });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`Heures_${namePart}.csv`; a.click();
-}
-
-function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
-
-function saveAdminNote() {
-  const note=document.getElementById("adminNote").value;
-  db.collection("notes").doc(`mois_${currentMonth}`).set({note,month:currentMonth});
-  alert("Note admin sauvegardée");
 }
 
 function loadMonthlyRecap() {
@@ -218,7 +163,7 @@ function loadMonthlyRecap() {
       html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
     });
     html+=`</tbody></table>`;
-    document.getElementById("summaryContainer").innerHTML+=html;
+    if(currentUser==="Admin") document.getElementById("summaryContainer").innerHTML+=html;
   });
 }
 
@@ -241,25 +186,16 @@ function loadYearlyRecap() {
       });
     });
 
-    let html = "";
-    if(currentUser==="Admin"){
-      html += "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
-      for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
-      html += "</tr></thead><tbody>";
-      Object.entries(yearlyData).forEach(([u,arr])=>{
-        html+=`<tr><td>${u}</td>`;
-        arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
-        html+="</tr>";
-      });
-      html+="</tbody></table>";
-    } else {
-      html += `<h3>Vos totaux annuels</h3><table><thead><tr><th>Mois</th><th>Heures</th></tr></thead><tbody>`;
-      (yearlyData[currentUser]||[]).forEach((val,i)=>{
-        html+=`<tr><td>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</td><td>${val.toFixed(1)}</td></tr>`;
-      });
-      html+="</tbody></table>";
-    }
-    document.getElementById("yearlyContainer").innerHTML = html;
+    let html = "<h3>Récapitulatif annuel par ouvrier</h3><table><thead><tr><th>Ouvrier</th>";
+    for(let i=0;i<12;i++) html+=`<th>${["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"][i]}</th>`;
+    html += "</tr></thead><tbody>";
+    Object.entries(yearlyData).forEach(([u,arr])=>{
+      html+=`<tr><td>${u}</td>`;
+      arr.forEach(val=> html+=`<td>${val.toFixed(1)}</td>`);
+      html+="</tr>";
+    });
+    html+="</tbody></table>";
+    if(currentUser==="Admin") document.getElementById("yearlyContainer").innerHTML = html;
   });
 }
 

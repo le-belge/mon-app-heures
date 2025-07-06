@@ -21,12 +21,10 @@ th, td {
   text-align: center;
 }
 
-/* ✅ Zébrage des lignes */
 table tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-/* ✅ Changement au survol */
 table tr:hover {
   background-color: #eef;
 }
@@ -56,24 +54,24 @@ button:hover {
   background: #0056b3;
 }
 
-/* Pour le select des semaines et des mois */
 select {
   padding: 6px;
   border-radius: 4px;
   border: 1px solid #ccc;
 }
 
-/* Pour le conteneur des blocs user */
 .user-block {
   background: #fff;
   padding: 12px;
-  margin-bottom: 20px;
+  margin-top: 20px;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Pour éviter les débordements */
-table {
-  table-layout: fixed;
-  word-wrap: break-word;
+#login input[type="password"] {
+  width: 250px;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
