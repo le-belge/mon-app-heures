@@ -9,6 +9,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+
 function getWeekNumber(d) {
   d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -32,8 +34,6 @@ let localData = {};
 let datesSemaine = [];
 let currentMonth = new Date().getMonth() + 1;
 const year = new Date().getFullYear();
-
-console.log("JS chargé !");
 
 function checkLogin() {
   const pass = document.getElementById("password").value.trim();
@@ -73,7 +73,7 @@ function getDatesOfWeek(weekNumber) {
   if (dow <= 4) monday.setDate(simple.getDate() - dow + 1);
   else monday.setDate(simple.getDate() + 8 - dow);
   const dates = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     dates.push(d);
@@ -86,10 +86,9 @@ function loadWeek() {
   const weekNum = parseInt(currentWeek.slice(1));
   const dts = getDatesOfWeek(weekNum);
   datesSemaine = dts.map(d=> ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2));
-  const tablesContainer = document.getElementById("tablesContainer");
-  const summaryContainer = document.getElementById("summaryContainer");
-  tablesContainer.innerHTML = "";
-  summaryContainer.innerHTML = "";
+  document.getElementById("tablesContainer").innerHTML = "";
+  document.getElementById("summaryContainer").innerHTML = "";
+  document.getElementById("yearlyContainer").innerHTML = "";
 
   db.collection("heures").where("semaine","==",currentWeek).get()
     .then(snapshot=>{
@@ -97,27 +96,29 @@ function loadWeek() {
       snapshot.forEach(doc=>{
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = [
-          d.lundi||"", d.mardi||"", d.mercredi||"", d.jeudi||"", d.vendredi||"", d.commentaire||""
+          d.lundi||"", d.mardi||"", d.mercredi||"", d.jeudi||"", d.vendredi||"", d.samedi||"", d.dimanche||"", d.commentaire||""
         ];
       });
       const users = currentUser==="Admin"
         ? Object.values(passwords).filter(u=>u!="Admin")
         : [currentUser];
       users.forEach(u=>{
-        const jours = localData[currentWeek][u] || ["","","","","",""];
-        tablesContainer.insertAdjacentHTML("beforeend", buildTableHTML(u, jours));
+        const jours = localData[currentWeek][u] || ["","","","","","","",""];
+        document.getElementById("tablesContainer").insertAdjacentHTML("beforeend", buildTableHTML(u, jours));
       });
       renderSummary(currentUser==="Admin", currentUser);
       attachCommentListeners();
+      loadMonthlyRecap();
+      if(currentUser==="Admin") loadYearlyRecap();
     }).catch(err=> console.error("Erreur loadWeek:",err));
 }
 
 function buildTableHTML(user, jours) {
   let html = `<div class="user-block"><h3>${user} - ${currentWeek}</h3><table><thead><tr><th>Jour</th><th>Date</th><th>Heures</th></tr></thead><tbody>`;
-  ["Lundi","Mardi","Mercredi","Jeudi","Vendredi"].forEach((day,i)=>{
-    html += `<tr><td>${day}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i]}" data-user="${user}" data-day="${i}"></td></tr>`;
+  days.forEach((day,i)=>{
+    html += `<tr><td>${day.charAt(0).toUpperCase()+day.slice(1)}</td><td>${datesSemaine[i]}</td><td><input list="absences" type="text" value="${jours[i]}" data-user="${user}" data-day="${i}"></td></tr>`;
   });
-  html += `</tbody></table><textarea class="comment-box" placeholder="Commentaire pour ${user}" data-user="${user}">${jours[5]}</textarea></div>`;
+  html += `</tbody></table><textarea class="comment-box" placeholder="Commentaire pour ${user}" data-user="${user}">${jours[7]}</textarea></div>`;
   return html;
 }
 
@@ -133,15 +134,12 @@ function attachCommentListeners() {
           snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
         }).then(()=>{
           loadWeek();
-          loadMonthlyRecap();
-          if(currentUser==="Admin") loadYearlyRecap();
         });
     });
   });
 }
 
 function renderSummary(isAdmin, userName) {
-  const summaryContainer = document.getElementById("summaryContainer");
   let html = isAdmin
     ? "<h3>Récapitulatif des totaux</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead><tbody>"
     : `<h3>Vos heures</h3><table><thead><tr><th>Total</th><th>Delta</th></tr></thead><tbody>`;
@@ -163,7 +161,7 @@ function renderSummary(isAdmin, userName) {
     else html+=`<tr><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
   });
   html += `</tbody></table>`;
-  summaryContainer.innerHTML = html;
+  document.getElementById("summaryContainer").innerHTML = html;
 }
 
 function saveWeek() {
@@ -171,7 +169,7 @@ function saveWeek() {
   const promises = [];
   inputs.forEach(input=>{
     const u = input.dataset.user; const d = parseInt(input.dataset.day);
-    const field = ["lundi","mardi","mercredi","jeudi","vendredi"][d];
+    const field = days[d];
     const val = input.value;
     promises.push(
       db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
@@ -189,21 +187,19 @@ function saveWeek() {
   Promise.all(promises).then(()=>{
     alert("Enregistré");
     loadWeek();
-    loadMonthlyRecap();
-    if(currentUser==="Admin") loadYearlyRecap();
   });
 }
 
 function exportCSV() {
-  const namePart = `${currentWeek}`;
-  let csv="Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Commentaire\n";
-  Object.values(passwords).filter(u=>u!="Admin").forEach(u=>{
-    const jours = localData[currentWeek][u]||[];
-    const com = jours[5]||"";
-    csv += `${currentWeek},${u},${jours.slice(0,5).join(",")},${com}\n`;
+  let csv="Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche,Commentaire\n";
+  db.collection("heures").get().then(snap=>{
+    snap.forEach(doc=>{
+      const d = doc.data();
+      csv += `${d.semaine||""},${d.ouvrier||""},${d.lundi||""},${d.mardi||""},${d.mercredi||""},${d.jeudi||""},${d.vendredi||""},${d.samedi||""},${d.dimanche||""},${d.commentaire||""}\n`;
+    });
+    const blob=new Blob([csv],{type:"text/csv"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="Sauvegarde_BDD_Pointage.csv"; a.click();
   });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`Heures_${namePart}.csv`; a.click();
 }
 
 function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
@@ -221,7 +217,7 @@ function loadMonthlyRecap() {
         uniqueWeekOuvrier[key] = true;
         const wnum=parseInt(d.semaine.slice(1));
         const datesOfWeek = getDatesOfWeek(wnum);
-        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day,i)=>{
+        days.forEach((day,i)=>{
           const date=datesOfWeek[i];
           if(date.getMonth()+1 === currentMonth){
             if(!monthlyData[d.ouvrier]) monthlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
@@ -261,7 +257,7 @@ function loadYearlyRecap() {
         uniqueWeekOuvrier[key] = true;
         const wnum = parseInt(d.semaine.slice(1));
         const datesOfWeek = getDatesOfWeek(wnum);
-        ["lundi","mardi","mercredi","jeudi","vendredi"].forEach((day, i)=>{
+        days.forEach((day, i)=>{
           const date = datesOfWeek[i];
           const monthIndex = date.getMonth();
           const v = d[day];

@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Pointage heures</title>
+  <title>Pointage Heures - Suivi hebdo, mensuel, annuel</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div style="text-align: center; margin-top: 20px;">
-  <img src="W11199801FIA.png" alt="Logo XLG" style="width: 150px; margin-bottom: 10px;">
+<div class="app-title">
+  <img src="W11199801FIA.png" alt="Logo XLG">
+  <h1>Application Pointage Heures</h1>
 </div>
 
 <div id="login" style="text-align: center; margin-top: 20px;">
@@ -23,11 +24,11 @@
   <h2 id="welcome"></h2>
   <button id="btnLogout" onclick="logout()">Déconnexion</button>
 
-  <div style="margin-top:20px;">
+  <div class="controls">
     <label for="weekSelector">Semaine :</label>
     <select id="weekSelector" onchange="loadWeek()"></select>
 
-    <label for="monthSelector" style="margin-left:20px;">Mois :</label>
+    <label for="monthSelector">Mois :</label>
     <select id="monthSelector" onchange="loadMonthlyRecap()">
       <option value="1">Janvier</option><option value="2">Février</option>
       <option value="3">Mars</option><option value="4">Avril</option>
@@ -38,9 +39,10 @@
     </select>
   </div>
 
-  <div style="margin-top: 10px;">
+  <div class="buttons">
     <button onclick="saveWeek()">Enregistrer</button>
-    <button onclick="exportCSV()">Exporter CSV</button>
+    <button onclick="exportCSV()">Exporter CSV semaine</button>
+    <button onclick="exportAllData()">Exporter TOUTE la BDD CSV</button>
     <button onclick="printAll()">Imprimer</button>
   </div>
 
