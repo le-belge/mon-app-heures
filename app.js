@@ -131,6 +131,10 @@ function attachCommentListeners() {
         .where('ouvrier','==',user)
         .get().then(snap=>{
           snap.forEach(doc=> doc.ref.set({ commentaire: comment },{ merge:true}));
+        }).then(()=>{
+          loadWeek();
+          loadMonthlyRecap();
+          if(currentUser==="Admin") loadYearlyRecap();
         });
     });
   });
@@ -145,7 +149,15 @@ function renderSummary(isAdmin, userName) {
     ? Object.values(passwords).filter(u=>u!="Admin").map(u=>[u, localData[currentWeek][u]||[]])
     : [[userName, localData[currentWeek][userName]||[]]];
   rows.forEach(([u, jours])=>{
-    let total=0;jours.forEach(h=>{if(h&&h!=="Congé"&&h!=="Maladie"&&h!=="Formation"&&h!=="Férié"){const [hh,mm]=h.split(":").map(Number);total+=hh+(mm||0)/60;}});
+    let total=0;
+    jours.forEach(h=>{
+      if(h && h!=="Congé" && h!=="Maladie" && h!=="Formation" && h!=="Férié") {
+        const parts = h.split(":");
+        const hh = parseInt(parts[0]);
+        const mm = parseInt(parts[1]||0);
+        if(!isNaN(hh)) total += hh + (isNaN(mm)?0:mm/60);
+      }
+    });
     const delta=(total-40).toFixed(2);
     if(isAdmin) html+=`<tr><td>${u}</td><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
     else html+=`<tr><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
@@ -156,17 +168,30 @@ function renderSummary(isAdmin, userName) {
 
 function saveWeek() {
   const inputs = document.querySelectorAll("#tablesContainer input");
+  const promises = [];
   inputs.forEach(input=>{
     const u = input.dataset.user; const d = parseInt(input.dataset.day);
     const field = ["lundi","mardi","mercredi","jeudi","vendredi"][d];
     const val = input.value;
-    db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
+    promises.push(
+      db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
       .then(snap=>{
-        if(snap.empty){ const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; db.collection("heures").add(obj);} 
-        else snap.forEach(doc=>doc.ref.set({[field]:val},{merge:true}));
-      });
+        if(snap.empty){ 
+          const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; 
+          return db.collection("heures").add(obj);
+        } else {
+          return Promise.all(snap.docs.map(doc=>doc.ref.set({[field]:val},{merge:true})));
+        }
+      })
+    );
   });
-  alert("Enregistré"); loadWeek(); loadMonthlyRecap(); if(currentUser==="Admin") loadYearlyRecap();
+
+  Promise.all(promises).then(()=>{
+    alert("Enregistré");
+    loadWeek();
+    loadMonthlyRecap();
+    if(currentUser==="Admin") loadYearlyRecap();
+  });
 }
 
 function exportCSV() {
@@ -204,7 +229,12 @@ function loadMonthlyRecap() {
             if(v==="Congé") monthlyData[d.ouvrier].conges++;
             else if(v==="Maladie") monthlyData[d.ouvrier].maladies++;
             else if(v==="Férié") monthlyData[d.ouvrier].feries++;
-            else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
+            else if(v){
+              const parts = v.split(":");
+              const hh = parseInt(parts[0]);
+              const mm = parseInt(parts[1]||0);
+              if(!isNaN(hh)) monthlyData[d.ouvrier].total+=hh+(isNaN(mm)?0:mm/60);
+            }
           }
         });
       }
@@ -236,9 +266,13 @@ function loadYearlyRecap() {
           const monthIndex = date.getMonth();
           const v = d[day];
           if(v && !["Congé","Maladie","Férié","Formation"].includes(v)){
-            const [hh,mm]=v.split(":").map(Number);
-            if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
-            yearlyData[d.ouvrier][monthIndex] += hh + (mm||0)/60;
+            const parts = v.split(":");
+            const hh = parseInt(parts[0]);
+            const mm = parseInt(parts[1]||0);
+            if(!isNaN(hh)){
+              if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]=new Array(12).fill(0);
+              yearlyData[d.ouvrier][monthIndex] += hh + (isNaN(mm)?0:mm/60);
+            }
           }
         });
       }
