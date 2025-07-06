@@ -1,16 +1,13 @@
 // ========= INIT FIREBASE =========
 const firebaseConfig = {
-  apiKey: "AIzaSyCPHCe7nziAYCyC-aArO1HiGDWqWJdIxAY",
+  apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
   authDomain: "pointage-heures.firebaseapp.com",
-  projectId: "pointage-heures",
-  storageBucket: "pointage-heures.appspot.com",
-  messagingSenderId: "219482491250",
-  appId: "1:219482491250:web:NWEyMThmMDEtMDZiYS00NWQxLTlkMmEtYjg2ODMwMzI3Yjhi"
+  projectId: "pointage-heures"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ========= VARIABLES GLOBALES =========
+// ========= VARIABLES =========
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let ouvriers = {};
 let currentUser = "";
@@ -46,14 +43,13 @@ function checkLogin() {
       document.getElementById("login").style.display = "none";
       document.getElementById("app").style.display = "block";
       document.getElementById("welcome").textContent = "Bienvenue " + currentUser;
-      if(code === "admin08110") {
-        document.getElementById("adminManageOuvriers").style.display = "block";
-        loadOuvrierList();
+
+      adjustDisplayForRole();
+      if(currentUser === "Admin") {
+        initWeekSelector();
+        loadWeek();
       }
-      initWeekSelector();
-      loadWeek();
       loadMonthlyRecap();
-      loadYearlyRecap();
     } else {
       document.getElementById("loginError").textContent = "Code inconnu.";
     }
@@ -65,36 +61,18 @@ document.getElementById("password").addEventListener("keydown",e=>{
 
 function logout() { location.reload(); }
 
-// ========= GESTION DES OUVRIERS =========
-function addOuvrier() {
-  const code = document.getElementById("ouvrierCode").value.trim();
-  const nom = document.getElementById("ouvrierNom").value.trim();
-  if(!code || !nom) return;
-  db.collection("ouvriers").doc(code).set({nom}).then(()=>{
-    loadOuvriers();
-    loadOuvrierList();
-    document.getElementById("ouvrierCode").value = "";
-    document.getElementById("ouvrierNom").value = "";
-  });
-}
-function deleteOuvrier(code) {
-  if(confirm("Supprimer cet ouvrier ?")) {
-    db.collection("ouvriers").doc(code).delete().then(()=>{
-      loadOuvriers();
-      loadOuvrierList();
-    });
+function adjustDisplayForRole() {
+  if(currentUser === "Admin") {
+    document.getElementById("tablesContainer").style.display = "block";
+    document.getElementById("summaryContainer").style.display = "block";
+    document.getElementById("monthlyControl").style.display = "block";
+    document.getElementById("monthlyContainer").style.display = "block";
+  } else {
+    document.getElementById("tablesContainer").style.display = "none";
+    document.getElementById("summaryContainer").style.display = "none";
+    document.getElementById("monthlyControl").style.display = "block";
+    document.getElementById("monthlyContainer").style.display = "block";
   }
-}
-function loadOuvrierList() {
-  db.collection("ouvriers").get().then(snap=>{
-    let html = "<table><tr><th>Code</th><th>Nom</th><th></th></tr>";
-    snap.forEach(doc=>{
-      html += `<tr><td>${doc.id}</td><td>${doc.data().nom}</td>
-               <td><button onclick="deleteOuvrier('${doc.id}')">Supprimer</button></td></tr>`;
-    });
-    html += "</table>";
-    document.getElementById("ouvrierList").innerHTML = html;
-  });
 }
 
 // ========= TABLES & RECAP =========
@@ -136,16 +114,12 @@ function loadWeek() {
         const d = doc.data();
         localData[currentWeek][d.ouvrier] = days.map(day=> d[day]||"").concat([d.commentaire||""]);
       });
-      const users = (currentUser==="Admin")
-        ? Object.values(ouvriers)
-        : [currentUser];
+      const users = Object.values(ouvriers);
       users.forEach(u=>{
         const jours = localData[currentWeek][u] || ["","","","","","","",""];
         document.getElementById("tablesContainer").insertAdjacentHTML("beforeend", buildTableHTML(u, jours));
       });
-      renderSummary(currentUser==="Admin", currentUser);
-      loadMonthlyRecap();
-      loadYearlyRecap();
+      renderSummary(true, currentUser);
     }).catch(err=> console.error("Erreur loadWeek:",err));
 }
 function buildTableHTML(user, jours) {
@@ -166,12 +140,8 @@ function buildTableHTML(user, jours) {
   return html;
 }
 function renderSummary(isAdmin, userName) {
-  let html = isAdmin
-    ? "<h3>Récapitulatif des totaux</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead><tbody>"
-    : `<h3>Vos heures</h3><table><thead><tr><th>Total</th><th>Delta</th></tr></thead><tbody>`;
-  const rows = isAdmin
-    ? Object.values(ouvriers).map(u=>[u, localData[currentWeek][u]||[]])
-    : [[userName, localData[currentWeek][userName]||[]]];
+  let html = "<h3>Récapitulatif des totaux</h3><table><thead><tr><th>Ouvrier</th><th>Total</th><th>Delta</th></tr></thead><tbody>";
+  const rows = Object.values(ouvriers).map(u=>[u, localData[currentWeek][u]||[]]);
   rows.forEach(([u, jours])=>{
     let total=0;
     jours.forEach(h=>{
@@ -181,54 +151,13 @@ function renderSummary(isAdmin, userName) {
       }
     });
     const delta=(total-40).toFixed(2);
-    if(isAdmin) html+=`<tr><td>${u}</td><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
-    else html+=`<tr><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
+    html+=`<tr><td>${u}</td><td>${total.toFixed(2)}</td><td style="color:${delta>=0?'green':'orange'}">${delta>=0?'+':''}${delta}</td></tr>`;
   });
   html += `</tbody></table>`;
   document.getElementById("summaryContainer").innerHTML = html;
 }
 
-// ========= SAUVEGARDE =========
-function saveWeek() {
-  const inputs = document.querySelectorAll("#tablesContainer input");
-  const promises = [];
-  inputs.forEach(input=>{
-    const u = input.dataset.user; const d = parseInt(input.dataset.day);
-    const field = days[d];
-    const val = input.value;
-    promises.push(
-      db.collection("heures").where("semaine","==",currentWeek).where("ouvrier","==",u).get()
-      .then(snap=>{
-        if(snap.empty){ 
-          const obj={semaine:currentWeek,ouvrier:u}; obj[field]=val; 
-          return db.collection("heures").add(obj);
-        } else {
-          return Promise.all(snap.docs.map(doc=>doc.ref.set({[field]:val},{merge:true})));
-        }
-      })
-    );
-  });
-  Promise.all(promises).then(()=>{
-    alert("Enregistré");
-    loadWeek();
-  });
-}
-
-// ========= EXPORT =========
-function exportCSV() {
-  let csv="Semaine,Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche,Commentaire\n";
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d = doc.data();
-      csv += `${d.semaine||""},${d.ouvrier||""},${d.lundi||""},${d.mardi||""},${d.mercredi||""},${d.jeudi||""},${d.vendredi||""},${d.samedi||""},${d.dimanche||""},${d.commentaire||""}\n`;
-    });
-    const blob=new Blob([csv],{type:"text/csv"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="Sauvegarde_BDD_Pointage.csv"; a.click();
-  });
-}
-function printAll() { document.title=`Recap_${currentWeek}`; window.print(); }
-
-// ========= MENSUEL & ANNUEL =========
+// ========= MENSUEL =========
 function loadMonthlyRecap() {
   currentMonth = parseInt(document.getElementById("monthSelector").value,10);
   const monthlyData={};
@@ -246,7 +175,10 @@ function loadMonthlyRecap() {
           if(v=="Congé") monthlyData[d.ouvrier].conges++;
           else if(v=="Maladie") monthlyData[d.ouvrier].maladies++;
           else if(v=="Férié") monthlyData[d.ouvrier].feries++;
-          else if(v){const [hh,mm]=v.split(":").map(Number);monthlyData[d.ouvrier].total+=hh+(mm||0)/60;}
+          else if(v){
+            const [hh,mm]=v.split(":").map(Number);
+            monthlyData[d.ouvrier].total+=hh+(mm||0)/60;
+          }
         });
       }
     });
@@ -258,30 +190,5 @@ function loadMonthlyRecap() {
     });
     html+=`</tbody></table>`;
     mc.innerHTML=html;
-  });
-}
-function loadYearlyRecap() {
-  const yearlyData={};
-  db.collection("heures").get().then(snap=>{
-    snap.forEach(doc=>{
-      const d=doc.data();
-      if(currentUser!=="Admin" && d.ouvrier!==currentUser) return;
-      if(!yearlyData[d.ouvrier]) yearlyData[d.ouvrier]={total:0,conges:0,maladies:0,feries:0};
-      days.forEach(day=>{
-        const v=d[day];
-        if(v=="Congé") yearlyData[d.ouvrier].conges++;
-        else if(v=="Maladie") yearlyData[d.ouvrier].maladies++;
-        else if(v=="Férié") yearlyData[d.ouvrier].feries++;
-        else if(v){const [hh,mm]=v.split(":").map(Number);yearlyData[d.ouvrier].total+=hh+(mm||0)/60;}
-      });
-    });
-    let yc=document.getElementById("yearlyContainer"); 
-    yc.innerHTML="<h3>Récapitulatif annuel</h3>";
-    let html=`<table><thead><tr><th>Ouvrier</th><th>Total</th><th>Congés</th><th>Maladie</th><th>Férié</th></tr></thead><tbody>`;
-    Object.entries(yearlyData).forEach(([u,o])=>{
-      html+=`<tr><td>${u}</td><td>${o.total.toFixed(2)}</td><td>${o.conges}</td><td>${o.maladies}</td><td>${o.feries}</td></tr>`;
-    });
-    html+=`</tbody></table>`;
-    yc.innerHTML=html;
   });
 }

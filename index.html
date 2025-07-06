@@ -2,76 +2,57 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pointage XLG - Mika</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <title>Pointage des heures</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <div class="app-title">
-    <img src="W11199801FIA.png" alt="Logo XLG"/>
-    <h1>Application de pointage - XLG</h1>
-  </div>
-
   <div id="login">
-    <label for="password">Code utilisateur :</label><br/>
-    <input id="password" type="password" placeholder="Entrez votre code" />
-    <button onclick="checkLogin()">Se connecter</button>
-    <div id="loginError" style="color:red; margin-top:8px;"></div>
+    <h2>Connexion</h2>
+    <input type="password" id="password" placeholder="Mot de passe">
+    <button onclick="checkLogin()">Valider</button>
+    <p id="loginError" style="color:red;"></p>
   </div>
 
   <div id="app" style="display:none;">
-    <div class="controls">
-      <span id="welcome"></span>
-      <button id="btnLogout" onclick="logout()">Déconnexion</button>
+    <h2 id="welcome"></h2>
+    <button onclick="logout()">🔙 Déconnexion</button>
+
+    <!-- Partie admin : tableaux semaine et récap semaine -->
+    <div id="tablesContainer"></div>
+    <div id="summaryContainer" style="margin-top:20px;"></div>
+
+    <!-- Sélecteur mois pour tout le monde -->
+    <div id="monthlyControl" style="margin-top:30px;">
+      <label><strong>Mois :</strong></label>
+      <select id="monthSelector">
+        <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+        <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+        <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+        <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+      </select>
+      <button onclick="loadMonthlyRecap()">📊 Récap mensuel</button>
     </div>
 
-    <div class="controls">
-      <label>Semaine : 
-        <select id="weekSelector" onchange="loadWeek()"></select>
-      </label>
-      <label>Mois : 
-        <select id="monthSelector" onchange="loadMonthlyRecap()">
-          <option value="1">Janvier</option>
-          <option value="2">Février</option>
-          <option value="3">Mars</option>
-          <option value="4">Avril</option>
-          <option value="5">Mai</option>
-          <option value="6">Juin</option>
-          <option value="7">Juillet</option>
-          <option value="8">Août</option>
-          <option value="9">Septembre</option>
-          <option value="10">Octobre</option>
-          <option value="11">Novembre</option>
-          <option value="12">Décembre</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="buttons">
-      <button onclick="saveWeek()">Sauvegarder</button>
-      <button onclick="exportCSV()">Exporter CSV</button>
-      <button onclick="printAll()">Imprimer</button>
-    </div>
-
-    <div class="table-container" id="tablesContainer"></div>
-    <div class="table-container" id="summaryContainer"></div>
-    <div class="table-container" id="monthlyContainer"></div>
-    <div class="table-container" id="yearlyContainer"></div>
-
-    <div id="adminManageOuvriers" style="display:none;">
-      <h3>Gestion des ouvriers</h3>
-      <input id="ouvrierCode" placeholder="Code (ex: nm08110)">
-      <input id="ouvrierNom" placeholder="Nom (ex: Mika)">
-      <button onclick="addOuvrier()">Ajouter / Modifier</button>
-      <div id="ouvrierList"></div>
-    </div>
+    <div id="monthlyContainer" style="margin-top:20px;"></div>
   </div>
 
-  <div class="signature">© 2025 - Développé par Mika (XLG)</div>
+  <datalist id="absences">
+    <option value="Congé"></option>
+    <option value="Maladie"></option>
+    <option value="Formation"></option>
+    <option value="Férié"></option>
+  </datalist>
 
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
+      authDomain: "pointage-heures.firebaseapp.com",
+      projectId: "pointage-heures"
+    });
+    const db = firebase.firestore();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
