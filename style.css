@@ -6,20 +6,41 @@ body {
   padding: 20px;
 }
 
-.centered {
-  text-align: center;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-
-.app-title img, .login-logo {
-  width: 100px;
+.header .app-title {
+  display: flex;
+  align-items: center;
 }
-
-h1, h2, h3 {
+.header .app-title img {
+  width: 80px;
+  margin-right: 10px;
+}
+.header .app-title h1 {
+  font-size: 24px;
   color: #d62c1a;
-  margin-top: 10px;
+}
+.session-info {
+  font-size: 18px;
+}
+.session-info button {
+  margin-left: 10px;
+  background: #d62c1a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.session-info button:hover {
+  background: #a42412;
 }
 
 #login {
+  text-align: center;
   max-width: 300px;
   margin: 50px auto;
   padding: 20px;
@@ -27,46 +48,30 @@ h1, h2, h3 {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-
 #login input, #login button {
   width: 90%;
   margin: 8px 0;
 }
 
-.controls, .recap-container, .annual-container {
-  margin-top: 20px;
+.controls {
+  margin: 20px auto;
+  text-align: center;
 }
 
-select, button {
-  padding: 6px;
-  margin: 6px;
-  border-radius: 4px;
-  border: 1px solid #bdc3c7;
-}
-
-button {
-  background: #d62c1a;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-button:hover {
-  background: #a42412;
-}
-
-.user-block {
+.user-block, .recap-container, .annual-container {
   background: #fff;
   margin: 20px auto;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(192, 57, 43, 0.1);
   max-width: 800px;
+  text-align: center;
 }
 
 .user-block table, .recap-container table, .annual-container table {
-  width: 100%;
-  border-collapse: collapse;
   margin: 0 auto;
+  width: 90%;
+  border-collapse: collapse;
 }
 th {
   background: #fdecea;
@@ -81,23 +86,11 @@ tr:nth-child(even) {
   background: #fbfafa;
 }
 textarea.comment-box {
-  width: 100%;
+  width: 90%;
   height: 60px;
   border: 1px solid #bdc3c7;
   border-radius: 4px;
   resize: vertical;
   padding: 6px;
   margin-top: 10px;
-}
-
-@media (max-width: 768px) {
-  .app-title img, .login-logo {
-    width: 80px;
-  }
-  h1 {
-    font-size: 18px;
-  }
-  th, td {
-    font-size: 13px;
-  }
 }

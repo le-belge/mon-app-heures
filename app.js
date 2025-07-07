@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
@@ -16,7 +16,6 @@ const db = getFirestore(app);
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let currentUser = "";
 let currentWeek = "S" + getWeekNumber(new Date());
-let currentDocId = ""; // pour mémoriser l'ID Firestore du doc trouvé
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedUser = localStorage.getItem("currentUser");
@@ -45,19 +44,14 @@ function getWeekNumber(d) {
 
 async function checkLogin() {
   const code = document.getElementById("password")?.value.trim();
-  const docSnap = await getDoc(doc(db, "ouvriers", code));
-  if(docSnap.exists()) {
-    currentUser = code;
-    localStorage.setItem("currentUser", currentUser);
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("sessionInfo").style.display = "block";
-    document.getElementById("welcome").textContent = `Bienvenue ${docSnap.data().nom}`;
-    initWeekSelector();
-    loadWeekData();
-  } else {
-    document.getElementById("loginError").textContent = "Identifiant inconnu.";
-  }
+  currentUser = code;
+  localStorage.setItem("currentUser", currentUser);
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("sessionInfo").style.display = "block";
+  document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
+  initWeekSelector();
+  loadWeekData();
 }
 
 function initWeekSelector() {
@@ -80,16 +74,10 @@ async function loadWeekData() {
   );
   const querySnap = await getDocs(q);
   let data = {};
-  currentDocId = "";
+  if (!querySnap.empty) data = querySnap.docs[0].data();
 
-  if (!querySnap.empty) {
-    const doc = querySnap.docs[0];
-    data = doc.data();
-    currentDocId = doc.id;
-  }
-
-  let total = 0;
   let html = `<div class="user-block"><table><tr><th>Jour</th><th>Heures</th></tr>`;
+  let total = 0;
   days.forEach(day => {
     let heure = data[day] || "";
     let hValue = heure.includes(":") ? parseFloat(heure.replace(":", ".")) : parseFloat(heure);
@@ -103,7 +91,6 @@ async function loadWeekData() {
     <textarea id="commentaire" class="comment-box" placeholder="Commentaire...">${data.commentaire || ""}</textarea>
     <div><button onclick="saveData()">Sauvegarder</button></div>
   </div>`;
-
   document.getElementById("tablesContainer").innerHTML = html;
   updateSummary(total, data.delta);
 }
@@ -119,24 +106,17 @@ function updateSummary(total, deltaBdd) {
 async function saveData() {
   let newData = { ouvrier: currentUser, semaine: currentWeek };
   let total = 0;
-
   days.forEach(day => {
     const val = document.getElementById(`input_${day}`)?.value || "";
     newData[day] = val;
     let hValue = val.includes(":") ? parseFloat(val.replace(":", ".")) : parseFloat(val);
     if (!isNaN(hValue)) total += hValue;
   });
-
   newData.total = total.toFixed(2);
   newData.delta = (total - 40).toFixed(2);
   newData.commentaire = document.getElementById("commentaire")?.value || "";
 
-  if (currentDocId) {
-    await setDoc(doc(db, "heures", currentDocId), newData);
-  } else {
-    await setDoc(doc(collection(db, "heures")), newData);
-  }
-
+  await setDoc(doc(collection(db, "heures")), newData);
   loadWeekData();
 }
 
