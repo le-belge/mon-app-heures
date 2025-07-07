@@ -1,52 +1,17 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pointage des heures XLG</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Test Firestore heures</title>
 </head>
 <body>
-  <div class="header">
-    <div class="app-title">
-      <img src="logo-xlg.png" alt="Logo XLG">
-      <h1>Pointage des heures</h1>
-    </div>
-    <div class="session-info" id="sessionInfo" style="display:none;">
-      <span id="welcome"></span>
-      <button onclick="logout()">Déconnexion</button>
-    </div>
-  </div>
+  <h2>Test récupération heures Firestore</h2>
+  <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Ben)">
+  <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
+  <button onclick="tester()">Tester récupération</button>
 
-  <div id="login" class="centered">
-    <img src="logo-xlg.png" alt="Logo XLG" class="login-logo">
-    <input type="password" id="password" placeholder="Identifiant (Entrer ou clic)">
-    <button onclick="checkLogin()">Se connecter</button>
-    <p id="loginError" style="color:red;"></p>
-  </div>
+  <pre id="resultat"></pre>
 
-  <div id="app" style="display:none;">
-    <div class="controls centered">
-      <label><strong>Semaine :</strong></label>
-      <select id="weekSelector" onchange="loadWeekData()"></select>
-      <button onclick="exportCSV()">Exporter CSV</button>
-      <button onclick="window.print()">Imprimer</button>
-    </div>
-
-    <div id="tablesContainer"></div>
-
-    <div class="recap-container centered">
-      <h3>Récapitulatif des totaux</h3>
-      <div id="summaryContainer"></div>
-    </div>
-
-    <div class="annual-container centered">
-      <h3>Récapitulatif annuel par ouvrier</h3>
-      <div id="monthlyContainer"></div>
-    </div>
-  </div>
-
-  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
@@ -55,7 +20,28 @@
       authDomain: "pointage-heures.firebaseapp.com",
       projectId: "pointage-heures"
     });
+    const db = firebase.firestore();
+
+    async function tester() {
+      const ouvrier = document.getElementById("ouvrier").value.trim();
+      const semaine = document.getElementById("semaine").value.trim();
+      const resultat = document.getElementById("resultat");
+
+      resultat.textContent = "Recherche en cours pour : " + ouvrier + ", " + semaine;
+
+      const snapshot = await db.collection("heures")
+        .where("ouvrier", "==", ouvrier)
+        .where("semaine", "==", semaine)
+        .get();
+
+      if (snapshot.empty) {
+        resultat.textContent = "AUCUN document trouvé pour " + ouvrier + " semaine " + semaine;
+      } else {
+        snapshot.forEach(doc => {
+          resultat.textContent = "Document trouvé (" + doc.id + "):\n" + JSON.stringify(doc.data(), null, 2);
+        });
+      }
+    }
   </script>
-  <script src="app.js"></script>
 </body>
 </html>
