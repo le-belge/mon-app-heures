@@ -14,15 +14,15 @@ async function login() {
   const snapshot = await db.collection("heures")
     .where("ouvrier", "==", currentUser)
     .where("semaine", "==", currentWeek)
+    .orderBy("timestamp", "desc")
+    .limit(1)
     .get();
 
   if (snapshot.empty) {
     document.getElementById("resultat").textContent = "AUCUN document trouvé.";
   } else {
-    let output = "";
     snapshot.forEach(doc => {
-      output += JSON.stringify(doc.data(), null, 2);
+      document.getElementById("resultat").textContent = "Document le plus récent trouvé:\n" + JSON.stringify(doc.data(), null, 2);
     });
-    document.getElementById("resultat").textContent = output;
   }
 }
