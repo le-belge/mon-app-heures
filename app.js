@@ -8,14 +8,10 @@ const db = firebase.firestore();
 let currentUser = "";
 let currentWeek = "";
 
-// 🔒 Mapping anonymisé - à remplacer dans ton projet local
+// 🔒 Mapping sécurisé : à configurer toi-même localement
 const codeToName = {
-  "codeAdmin": "Admin",
-  "codeBen": "Ben",
-  "codeMarc": "Marc",
-  "codeMika": "Mika",
-  "codeOlivier": "Olivier",
-  "codeRenaud": "Renaud"
+  // "codePersonnel": "Nom",
+  // exemple: "nm08110": "Mika"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,7 +28,7 @@ function connecter() {
   document.getElementById("appPage").style.display = "block";
   document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser}`;
   
-  if (code !== "codeAdmin") {
+  if (code !== "admin08110") {
     document.getElementById("adminAdd").style.display = "none";
   }
 }
