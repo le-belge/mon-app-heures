@@ -7,12 +7,7 @@ const db = firebase.firestore();
 
 let currentUser = "";
 let currentWeek = "";
-
-// 🔒 Mapping sécurisé : à configurer toi-même localement
-const codeToName = {
-  // "codePersonnel": "Nom",
-  // exemple: "nm08110": "Mika"
-};
+const codeToName = {}; // à remplir dans ton projet local avec tes codes
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("codeInput").addEventListener("keydown", e => { 
