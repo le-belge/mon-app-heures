@@ -9,20 +9,20 @@ document.addEventListener("DOMContentLoaded", () => {
 async function login() {
   currentUser = document.getElementById("ouvrier").value.trim();
   currentWeek = document.getElementById("semaine").value.trim();
-  document.getElementById("resultat").textContent = "Recherche en cours pour " + currentUser + " semaine " + currentWeek;
+  document.getElementById("resultat").textContent = "Chargement...";
 
-  const snapshot = await db.collection("heures")
-    .where("ouvrier", "==", currentUser)
-    .where("semaine", "==", currentWeek)
-    .orderBy("timestamp", "desc")
-    .limit(1)
-    .get();
+  const snapshot = await db.collection("heures").get();
+  let found = false;
 
-  if (snapshot.empty) {
-    document.getElementById("resultat").textContent = "AUCUN document trouvé.";
-  } else {
-    snapshot.forEach(doc => {
-      document.getElementById("resultat").textContent = "Document le plus récent trouvé:\n" + JSON.stringify(doc.data(), null, 2);
-    });
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.ouvrier === currentUser && data.semaine === currentWeek) {
+      document.getElementById("resultat").textContent = JSON.stringify(data, null, 2);
+      found = true;
+    }
+  });
+
+  if (!found) {
+    document.getElementById("resultat").textContent = "AUCUN document trouvé pour " + currentUser + " semaine " + currentWeek;
   }
 }
