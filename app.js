@@ -15,7 +15,19 @@ const db = getFirestore(app);
 
 const days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 let currentUser = "";
+let currentUserDisplay = "";
 let currentWeek = "S" + getWeekNumber(new Date());
+
+document.addEventListener("DOMContentLoaded", () => {
+  const savedUser = localStorage.getItem("currentUser");
+  const savedDisplay = localStorage.getItem("currentUserDisplay");
+  if (savedUser && savedDisplay) {
+    currentUser = savedUser;
+    currentUserDisplay = savedDisplay;
+    showApp();
+    loadWeekData();
+  }
+});
 
 document.getElementById("password").addEventListener("keydown", e => {
   if (e.key === "Enter") checkLogin();
@@ -33,14 +45,21 @@ async function checkLogin() {
   const code = document.getElementById("password")?.value.trim();
   const docSnap = await getDoc(doc(db, "ouvriers", code));
   if(docSnap.exists()) {
-    currentUser = docSnap.data().nom;
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
+    currentUser = code;
+    currentUserDisplay = docSnap.data().nom;
+    localStorage.setItem("currentUser", currentUser);
+    localStorage.setItem("currentUserDisplay", currentUserDisplay);
+    showApp();
     loadWeekData();
   } else {
     document.getElementById("loginError").textContent = "Identifiant inconnu.";
   }
+}
+
+function showApp() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("welcome").textContent = `Bienvenue ${currentUserDisplay}`;
 }
 
 async function loadWeekData() {
@@ -48,6 +67,7 @@ async function loadWeekData() {
   const commentBox = document.getElementById("commentaire");
   let html = `<table><tr><th>Jour</th><th>Heures</th><th>Absence</th></tr>`;
   let total = 0;
+
   const weekRef = collection(db, "heures");
   const q = query(weekRef, where("ouvrier", "==", currentUser), where("semaine", "==", currentWeek));
   const querySnap = await getDocs(q);
@@ -58,7 +78,8 @@ async function loadWeekData() {
     const record = dataWeek[day] || {};
     let heure = record.heure || "";
     let absence = record.absence || "";
-    if(heure && !isNaN(parseFloat(heure.replace(":", ".")))) total += parseFloat(heure.replace(":", "."));
+    let hValue = heure.includes(":") ? parseFloat(heure.replace(":", ".")) : parseFloat(heure);
+    if (!isNaN(hValue)) total += hValue;
     html += `<tr>
       <td>${day}</td>
       <td><input type="text" value="${heure}"></td>
@@ -69,12 +90,33 @@ async function loadWeekData() {
   tableContainer.innerHTML = html;
   commentBox.value = (querySnap.docs[0]?.data().commentaire) || "";
   updateSummary(total);
+  updateMonthlyRecap();
 }
 
 function updateSummary(total) {
   const summary = document.getElementById("summaryContainer");
   let delta = (total - 40).toFixed(2);
   summary.innerHTML = `<p><strong>Total semaine :</strong> ${total.toFixed(2)} h (${delta >=0 ? "+" : ""}${delta}h)</p>`;
+}
+
+async function updateMonthlyRecap() {
+  const monthly = document.getElementById("monthlyContainer");
+  const month = new Date().getMonth() + 1;
+  const monthRef = collection(db, "heures");
+  const q = query(monthRef, where("ouvrier", "==", currentUser));
+  const querySnap = await getDocs(q);
+
+  let totalMonth = 0;
+  querySnap.forEach(doc => {
+    const data = doc.data();
+    if (data.semaine.startsWith("S")) {
+      let h = data.heure;
+      let hValue = h && h.includes(":") ? parseFloat(h.replace(":", ".")) : parseFloat(h);
+      if (!isNaN(hValue)) totalMonth += hValue;
+    }
+  });
+
+  monthly.innerHTML = `<p><strong>Total mois :</strong> ${totalMonth.toFixed(2)} h (pour 40h/semaine)</p>`;
 }
 
 async function saveData() {
@@ -96,5 +138,5 @@ async function saveData() {
     }));
   });
   await Promise.all(promises);
-  loadWeekData();
+  loadWeekData(); // 🔥 rafraîchit les données sans re-login
 }
