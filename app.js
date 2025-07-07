@@ -1,17 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-  authDomain: "pointage-heures.firebaseapp.com",
-  projectId: "pointage-heures",
-  storageBucket: "pointage-heures.firebasestorage.app",
-  messagingSenderId: "392363086555",
-  appId: "1:392363086555:web:6bfe7f166214443e86b2fe"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = firebase.firestore();
 
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let currentUser = "";
@@ -43,8 +30,7 @@ function getWeekNumber(d) {
 }
 
 async function checkLogin() {
-  const code = document.getElementById("password")?.value.trim();
-  currentUser = code;
+  currentUser = document.getElementById("password")?.value.trim();
   localStorage.setItem("currentUser", currentUser);
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
@@ -68,13 +54,13 @@ function initWeekSelector() {
 
 async function loadWeekData() {
   currentWeek = document.getElementById("weekSelector")?.value || currentWeek;
-  const q = query(collection(db, "heures"),
-    where("ouvrier", "==", currentUser),
-    where("semaine", "==", currentWeek)
-  );
-  const querySnap = await getDocs(q);
+  const snapshot = await db.collection("heures")
+    .where("ouvrier", "==", currentUser)
+    .where("semaine", "==", currentWeek)
+    .get();
+
   let data = {};
-  if (!querySnap.empty) data = querySnap.docs[0].data();
+  if (!snapshot.empty) data = snapshot.docs[0].data();
 
   let html = `<div class="user-block"><table><tr><th>Jour</th><th>Heures</th></tr>`;
   let total = 0;
@@ -116,7 +102,7 @@ async function saveData() {
   newData.delta = (total - 40).toFixed(2);
   newData.commentaire = document.getElementById("commentaire")?.value || "";
 
-  await setDoc(doc(collection(db, "heures")), newData);
+  await db.collection("heures").add(newData);
   loadWeekData();
 }
 
