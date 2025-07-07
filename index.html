@@ -7,26 +7,45 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-title">
-    <img src="logo-xlg.png" alt="Logo XLG">
-    <h1>Pointage des heures</h1>
+  <div class="header">
+    <div class="app-title">
+      <img src="logo-xlg.png" alt="Logo XLG">
+      <h1>Pointage des heures</h1>
+    </div>
+    <div class="session-info">
+      <span id="welcome"></span>
+      <button onclick="logout()">Déconnexion</button>
+    </div>
   </div>
 
   <div id="login">
+    <div class="app-title">
+      <img src="logo-xlg.png" alt="Logo XLG">
+    </div>
     <input type="password" id="password" placeholder="Identifiant (Entrer ou clic)">
     <button onclick="checkLogin()">Se connecter</button>
     <p id="loginError" style="color:red;"></p>
   </div>
 
   <div id="app" style="display:none;">
-    <h2 id="welcome"></h2>
-    <div id="tablesContainer"></div>
-    <textarea id="commentaire" class="comment-box" placeholder="Commentaire..."></textarea>
-    <div class="controls">
-      <button onclick="saveData()">Sauvegarder</button>
+    <div class="week-control">
+      <label><strong>Semaine :</strong></label>
+      <select id="weekSelector" onchange="loadWeekData()"></select>
+      <button onclick="exportCSV()">Exporter CSV</button>
+      <button onclick="window.print()">Imprimer</button>
     </div>
-    <div id="summaryContainer"></div>
-    <div id="monthlyContainer"></div>
+
+    <div id="tablesContainer"></div>
+
+    <div class="recap-container">
+      <h3>Récapitulatif des totaux</h3>
+      <div id="summaryContainer"></div>
+    </div>
+
+    <div class="annual-container">
+      <h3>Récapitulatif annuel par ouvrier</h3>
+      <div id="monthlyContainer"></div>
+    </div>
   </div>
 
   <datalist id="absences">
