@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <title>Pointage des heures</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 30px; }
-    table { margin: 20px auto; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    input { width: 60px; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h2>Pointage des heures Firestore</h2>
-  <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Oliv)">
-  <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
-  <button onclick="charger()">Charger</button>
+  <div class="header">
+    <img src="logo-xlg.png" alt="XLG" class="logo">
+    <h1>Pointage des heures</h1>
+  </div>
+
+  <div class="inputs">
+    <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Marc)">
+    <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
+    <button onclick="charger()">Charger</button>
+  </div>
 
   <table>
     <tr><th>Jour</th><th>Heures</th></tr>
@@ -28,65 +29,11 @@
   </table>
 
   <button onclick="sauver()">Sauvegarder</button>
-  <pre id="resultat"></pre>
+
+  <div id="recap"></div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
-    firebase.initializeApp({
-      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-      authDomain: "pointage-heures.firebaseapp.com",
-      projectId: "pointage-heures"
-    });
-    const db = firebase.firestore();
-
-    async function charger() {
-      const ouvrier = document.getElementById("ouvrier").value.trim();
-      const semaine = document.getElementById("semaine").value.trim();
-      const res = document.getElementById("resultat");
-      res.textContent = "Chargement...";
-
-      const snapshot = await db.collection("heures")
-        .where("ouvrier", "==", ouvrier)
-        .where("semaine", "==", semaine)
-        .get();
-
-      if (snapshot.empty) {
-        res.textContent = `Aucune heure trouvée pour ${ouvrier} semaine ${semaine}`;
-        remplir({});
-      } else {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          remplir(data);
-          res.textContent = `Heures trouvées : total ${data.total} h, delta ${data.delta} h`;
-        });
-      }
-    }
-
-    function remplir(data) {
-      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
-        document.getElementById(j).value = data[j] || "";
-      });
-    }
-
-    async function sauver() {
-      const ouvrier = document.getElementById("ouvrier").value.trim();
-      const semaine = document.getElementById("semaine").value.trim();
-      let total = 0;
-      let data = { ouvrier, semaine, timestamp: new Date() };
-
-      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
-        const val = document.getElementById(j).value.trim();
-        data[j] = val;
-        const num = parseFloat(val.replace(":", "."));
-        if (!isNaN(num)) total += num;
-      });
-      data.total = total.toFixed(2);
-      data.delta = (total - 40).toFixed(2);
-
-      await db.collection("heures").add(data);
-      document.getElementById("resultat").textContent = `Sauvegardé : total ${data.total} h, delta ${data.delta} h`;
-    }
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
