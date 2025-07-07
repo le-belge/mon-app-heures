@@ -1,23 +1,27 @@
 firebase.initializeApp({
-  apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-  authDomain: "pointage-heures.firebaseapp.com",
-  projectId: "pointage-heures"
+  apiKey: "TON_API_KEY",
+  authDomain: "TON_PROJECT_ID.firebaseapp.com",
+  projectId: "TON_PROJECT_ID"
 });
 const db = firebase.firestore();
 
 let currentUser = "";
 let currentWeek = "";
+
+// 🔒 Mapping anonymisé - à remplacer dans ton projet local
 const codeToName = {
-  "admin08110": "Admin",
-  "ba08110": "Ben",
-  "do08110": "Olivier",
-  "lm08110": "Marc",
-  "nm08110": "Mika",
-  "ra08110": "Renaud"
+  "codeAdmin": "Admin",
+  "codeBen": "Ben",
+  "codeMarc": "Marc",
+  "codeMika": "Mika",
+  "codeOlivier": "Olivier",
+  "codeRenaud": "Renaud"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
+  document.getElementById("codeInput").addEventListener("keydown", e => { 
+    if (e.key === "Enter") connecter(); 
+  });
 });
 
 function connecter() {
@@ -27,6 +31,10 @@ function connecter() {
   document.getElementById("loginPage").style.display = "none";
   document.getElementById("appPage").style.display = "block";
   document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser}`;
+  
+  if (code !== "codeAdmin") {
+    document.getElementById("adminAdd").style.display = "none";
+  }
 }
 
 async function chargerHeures() {
