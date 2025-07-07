@@ -46,16 +46,18 @@ async function chargerHeures() {
 
   if (!snapshot.empty) {
     const data = snapshot.docs[0].data();
-    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-      document.getElementById(jour).value = data[jour] || "";
-    });
+    remplirInputs(data);
     afficherRecap(data.total, data.delta);
   } else {
+    remplirInputs({});
     afficherRecap("0.00", "-40.00");
-    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-      document.getElementById(jour).value = "";
-    });
   }
+}
+
+function remplirInputs(data) {
+  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+    document.getElementById(jour).value = data[jour] || "";
+  });
 }
 
 function afficherRecap(total, delta) {
@@ -83,4 +85,19 @@ function deconnecter() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("currentWeek");
   location.reload();
+}
+
+function exporterCSV() {
+  let csv = "Jour,Heures\n";
+  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+    csv += `${jour},${document.getElementById(jour).value.trim()}\n`;
+  });
+  const recapText = document.getElementById("recap").textContent;
+  csv += `Total et Delta,${recapText}\n`;
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${currentUser}_${currentWeek}.csv`;
+  link.click();
 }
