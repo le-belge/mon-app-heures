@@ -4,15 +4,13 @@ let currentUser = "";
 let currentWeek = "S" + getWeekNumber(new Date());
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedUser = localStorage.getItem("currentUser");
-  if (savedUser) {
-    currentUser = savedUser;
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("sessionInfo").style.display = "block";
-    document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
-    initWeekSelector();
-    loadWeekData();
+  if (!localStorage.getItem("currentUser")) {
+    document.getElementById("login").style.display = "block";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("sessionInfo").style.display = "none";
+  } else {
+    currentUser = localStorage.getItem("currentUser");
+    showApp();
   }
 });
 
@@ -28,9 +26,15 @@ function getWeekNumber(d) {
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
 
-async function checkLogin() {
+function checkLogin() {
   currentUser = document.getElementById("password")?.value.trim();
-  localStorage.setItem("currentUser", currentUser);
+  if (currentUser) {
+    localStorage.setItem("currentUser", currentUser);
+    showApp();
+  }
+}
+
+function showApp() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
   document.getElementById("sessionInfo").style.display = "block";
