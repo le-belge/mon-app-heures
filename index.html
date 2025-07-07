@@ -2,14 +2,28 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Test Firestore direct</title>
+  <title>Pointage heures Firestore unique</title>
 </head>
 <body>
-  <h2>Test récupération brute des heures</h2>
+  <h2>Pointage des heures</h2>
   <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Marc)">
   <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
-  <button id="loginBtn">Tester</button>
-  <pre id="resultat"></pre>
+  <button onclick="charger()">Charger</button>
+
+  <table border="1" style="margin-top:20px;">
+    <tr><th>Jour</th><th>Heures</th></tr>
+    <tr><td>Lundi</td><td><input id="lundi"></td></tr>
+    <tr><td>Mardi</td><td><input id="mardi"></td></tr>
+    <tr><td>Mercredi</td><td><input id="mercredi"></td></tr>
+    <tr><td>Jeudi</td><td><input id="jeudi"></td></tr>
+    <tr><td>Vendredi</td><td><input id="vendredi"></td></tr>
+    <tr><td>Samedi</td><td><input id="samedi"></td></tr>
+    <tr><td>Dimanche</td><td><input id="dimanche"></td></tr>
+  </table>
+
+  <button onclick="sauver()" style="margin-top:15px;">Sauvegarder</button>
+
+  <pre id="resultat" style="margin-top:20px;"></pre>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -19,7 +33,49 @@
       authDomain: "pointage-heures.firebaseapp.com",
       projectId: "pointage-heures"
     });
+    const db = firebase.firestore();
+
+    async function charger() {
+      const ouvrier = document.getElementById("ouvrier").value.trim();
+      const semaine = document.getElementById("semaine").value.trim();
+      const docRef = db.collection("heures").doc(`${ouvrier}_${semaine}`);
+      const docSnap = await docRef.get();
+
+      if (!docSnap.exists) {
+        document.getElementById("resultat").textContent = `AUCUN enregistrement trouvé pour ${ouvrier} semaine ${semaine}`;
+        remplirTableau({});
+      } else {
+        const data = docSnap.data();
+        remplirTableau(data);
+        document.getElementById("resultat").textContent = `Données chargées pour ${ouvrier} semaine ${semaine}`;
+      }
+    }
+
+    function remplirTableau(data) {
+      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+        document.getElementById(jour).value = data[jour] || "";
+      });
+    }
+
+    async function sauver() {
+      const ouvrier = document.getElementById("ouvrier").value.trim();
+      const semaine = document.getElementById("semaine").value.trim();
+      let total = 0;
+      let newData = { ouvrier, semaine, timestamp: new Date() };
+
+      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+        const val = document.getElementById(jour).value.trim();
+        newData[jour] = val;
+        const num = parseFloat(val.replace(":", "."));
+        if (!isNaN(num)) total += num;
+      });
+
+      newData.total = total.toFixed(2);
+      newData.delta = (total - 40).toFixed(2);
+
+      await db.collection("heures").doc(`${ouvrier}_${semaine}`).set(newData);
+      document.getElementById("resultat").textContent = `Heures sauvegardées pour ${ouvrier} semaine ${semaine}`;
+    }
   </script>
-  <script src="app.js"></script>
 </body>
 </html>
