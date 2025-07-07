@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
@@ -13,18 +13,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let currentUser = "";
-let currentUserDisplay = "";
 let currentWeek = "S" + getWeekNumber(new Date());
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedUser = localStorage.getItem("currentUser");
-  const savedDisplay = localStorage.getItem("currentUserDisplay");
-  if (savedUser && savedDisplay) {
+  if (savedUser) {
     currentUser = savedUser;
-    currentUserDisplay = savedDisplay;
-    showApp();
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
+    initWeekSelector();
     loadWeekData();
   }
 });
@@ -46,97 +46,90 @@ async function checkLogin() {
   const docSnap = await getDoc(doc(db, "ouvriers", code));
   if(docSnap.exists()) {
     currentUser = code;
-    currentUserDisplay = docSnap.data().nom;
     localStorage.setItem("currentUser", currentUser);
-    localStorage.setItem("currentUserDisplay", currentUserDisplay);
-    showApp();
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("welcome").textContent = `Bienvenue ${docSnap.data().nom}`;
+    initWeekSelector();
     loadWeekData();
   } else {
     document.getElementById("loginError").textContent = "Identifiant inconnu.";
   }
 }
 
-function showApp() {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  document.getElementById("welcome").textContent = `Bienvenue ${currentUserDisplay}`;
+function initWeekSelector() {
+  const weekSelector = document.getElementById("weekSelector");
+  weekSelector.innerHTML = "";
+  for (let i = 1; i <= 52; i++) {
+    const opt = document.createElement("option");
+    opt.value = "S" + i;
+    opt.textContent = "Semaine " + i;
+    if ("S" + i === currentWeek) opt.selected = true;
+    weekSelector.appendChild(opt);
+  }
 }
 
 async function loadWeekData() {
+  currentWeek = document.getElementById("weekSelector")?.value || currentWeek;
+  const docRef = doc(db, "heures", `${currentUser}_${currentWeek}`);
+  const docSnap = await getDoc(docRef);
   const tableContainer = document.getElementById("tablesContainer");
-  const commentBox = document.getElementById("commentaire");
-  let html = `<table><tr><th>Jour</th><th>Heures</th><th>Absence</th></tr>`;
-  let total = 0;
 
-  const weekRef = collection(db, "heures");
-  const q = query(weekRef, where("ouvrier", "==", currentUser), where("semaine", "==", currentWeek));
-  const querySnap = await getDocs(q);
-  let dataWeek = {};
-  querySnap.forEach(doc => dataWeek[doc.data().jour] = doc.data());
+  let html = `<div class="user-block"><table><tr><th>Jour</th><th>Heures</th></tr>`;
+  let total = 0;
+  let data = {};
+  if (docSnap.exists()) {
+    data = docSnap.data();
+  }
 
   days.forEach(day => {
-    const record = dataWeek[day] || {};
-    let heure = record.heure || "";
-    let absence = record.absence || "";
+    let heure = data[day] || "";
     let hValue = heure.includes(":") ? parseFloat(heure.replace(":", ".")) : parseFloat(heure);
     if (!isNaN(hValue)) total += hValue;
     html += `<tr>
-      <td>${day}</td>
-      <td><input type="text" value="${heure}"></td>
-      <td><input list="absences" value="${absence}"></td>
+      <td>${day.charAt(0).toUpperCase() + day.slice(1)}</td>
+      <td><input type="text" id="input_${day}" value="${heure}"></td>
     </tr>`;
   });
-  html += `</table>`;
+
+  html += `</table>
+    <textarea id="commentaire" class="comment-box" placeholder="Commentaire...">${data.commentaire || ""}</textarea>
+    <div><button onclick="saveData()">Sauvegarder</button></div>
+  </div>`;
   tableContainer.innerHTML = html;
-  commentBox.value = (querySnap.docs[0]?.data().commentaire) || "";
-  updateSummary(total);
-  updateMonthlyRecap();
+
+  updateSummary(total, data.delta);
 }
 
-function updateSummary(total) {
+function updateSummary(total, deltaBdd) {
   const summary = document.getElementById("summaryContainer");
-  let delta = (total - 40).toFixed(2);
-  summary.innerHTML = `<p><strong>Total semaine :</strong> ${total.toFixed(2)} h (${delta >=0 ? "+" : ""}${delta}h)</p>`;
-}
-
-async function updateMonthlyRecap() {
-  const monthly = document.getElementById("monthlyContainer");
-  const month = new Date().getMonth() + 1;
-  const monthRef = collection(db, "heures");
-  const q = query(monthRef, where("ouvrier", "==", currentUser));
-  const querySnap = await getDocs(q);
-
-  let totalMonth = 0;
-  querySnap.forEach(doc => {
-    const data = doc.data();
-    if (data.semaine.startsWith("S")) {
-      let h = data.heure;
-      let hValue = h && h.includes(":") ? parseFloat(h.replace(":", ".")) : parseFloat(h);
-      if (!isNaN(hValue)) totalMonth += hValue;
-    }
-  });
-
-  monthly.innerHTML = `<p><strong>Total mois :</strong> ${totalMonth.toFixed(2)} h (pour 40h/semaine)</p>`;
+  let deltaCalc = (total - 40).toFixed(2);
+  let deltaDisplay = deltaBdd || deltaCalc;
+  summary.innerHTML = `<table><tr><th>Total semaine</th><th>Delta</th></tr>
+    <tr><td>${total.toFixed(2)} h</td><td>${deltaDisplay >=0 ? "+" : ""}${deltaDisplay} h</td></tr></table>`;
 }
 
 async function saveData() {
-  const rows = document.querySelectorAll("#tablesContainer table tr");
-  let promises = [];
-  rows.forEach((tr, idx) => {
-    if(idx === 0) return;
-    const day = days[idx - 1];
-    const heure = tr.cells[1].querySelector("input").value;
-    const absence = tr.cells[2].querySelector("input").value;
-    const docRef = doc(db, "heures", `${currentUser}_${currentWeek}_${day}`);
-    promises.push(setDoc(docRef, {
-      ouvrier: currentUser,
-      semaine: currentWeek,
-      jour: day,
-      heure: heure,
-      absence: absence,
-      commentaire: document.getElementById("commentaire").value || ""
-    }));
+  let newData = { ouvrier: currentUser, semaine: currentWeek };
+  let total = 0;
+
+  days.forEach(day => {
+    const val = document.getElementById(`input_${day}`)?.value || "";
+    newData[day] = val;
+    let hValue = val.includes(":") ? parseFloat(val.replace(":", ".")) : parseFloat(val);
+    if (!isNaN(hValue)) total += hValue;
   });
-  await Promise.all(promises);
-  loadWeekData(); // 🔥 rafraîchit les données sans re-login
+
+  newData.total = total.toFixed(2);
+  newData.delta = (total - 40).toFixed(2);
+  newData.commentaire = document.getElementById("commentaire")?.value || "";
+
+  const docRef = doc(db, "heures", `${currentUser}_${currentWeek}`);
+  await setDoc(docRef, newData);
+  loadWeekData();
+}
+
+function logout() {
+  localStorage.removeItem("currentUser");
+  location.reload();
 }
