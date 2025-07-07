@@ -1,47 +1,25 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Test Firestore heures</title>
-</head>
-<body>
-  <h2>Test récupération heures Firestore</h2>
-  <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Ben)">
-  <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
-  <button onclick="tester()">Tester récupération</button>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
+    authDomain: "pointage-heures.firebaseapp.com",
+    projectId: "pointage-heures"
+  });
+  const db = firebase.firestore();
 
-  <pre id="resultat"></pre>
+  async function tester() {
+    const resultat = document.getElementById("resultat");
+    resultat.textContent = "Listing complet de la collection 'heures'...";
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
-    firebase.initializeApp({
-      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-      authDomain: "pointage-heures.firebaseapp.com",
-      projectId: "pointage-heures"
-    });
-    const db = firebase.firestore();
-
-    async function tester() {
-      const ouvrier = document.getElementById("ouvrier").value.trim();
-      const semaine = document.getElementById("semaine").value.trim();
-      const resultat = document.getElementById("resultat");
-
-      resultat.textContent = "Recherche en cours pour : " + ouvrier + ", " + semaine;
-
-      const snapshot = await db.collection("heures")
-        .where("ouvrier", "==", ouvrier)
-        .where("semaine", "==", semaine)
-        .get();
-
-      if (snapshot.empty) {
-        resultat.textContent = "AUCUN document trouvé pour " + ouvrier + " semaine " + semaine;
-      } else {
-        snapshot.forEach(doc => {
-          resultat.textContent = "Document trouvé (" + doc.id + "):\n" + JSON.stringify(doc.data(), null, 2);
-        });
-      }
+    const snapshot = await db.collection("heures").get();
+    if (snapshot.empty) {
+      resultat.textContent = "La collection 'heures' est VIDE.";
+    } else {
+      let output = "";
+      snapshot.forEach(doc => {
+        output += "Document ID: " + doc.id + "\n";
+        output += JSON.stringify(doc.data(), null, 2) + "\n\n";
+      });
+      resultat.textContent = output;
     }
-  </script>
-</body>
-</html>
+  }
+</script>
