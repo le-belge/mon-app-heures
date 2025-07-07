@@ -15,7 +15,7 @@ body {
 .app-title h1 {
   margin-top: 5px;
   font-size: 22px;
-  color: #c0392b;
+  color: #d62c1a; /* rouge XLG */
 }
 
 #login {
@@ -33,9 +33,8 @@ body {
   margin: 6px 0;
 }
 
-h2, h3 {
-  margin-top: 20px;
-  color: #c0392b;
+h2 {
+  color: #d62c1a;
 }
 
 table {
@@ -45,7 +44,7 @@ table {
 }
 th {
   background: #fdecea;
-  color: #c0392b;
+  color: #d62c1a;
   font-weight: bold;
 }
 th, td {
@@ -59,9 +58,6 @@ table tr:nth-child(even) {
 table tr:hover {
   background: #fbeee6;
 }
-.table-container {
-  overflow-x: auto;
-}
 
 textarea.comment-box {
   width: 100%;
@@ -74,7 +70,7 @@ textarea.comment-box {
 }
 
 button {
-  background: #c0392b;
+  background: #d62c1a;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -84,47 +80,7 @@ button {
   transition: background 0.3s;
 }
 button:hover {
-  background: #992d22;
-}
-
-.controls, .buttons {
-  margin-top: 15px;
-  text-align: center;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.controls label, .buttons button {
-  margin: 5px;
-}
-
-select {
-  padding: 6px;
-  border-radius: 4px;
-  border: 1px solid #bdc3c7;
-  margin-left: 8px;
-}
-
-.user-block {
-  background: #ffffff;
-  padding: 12px;
-  margin-top: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.1);
-}
-
-td[style*="green"] {
-  background: #dff0d8;
-}
-td[style*="orange"] {
-  background: #fcf8e3;
-}
-
-.signature {
-  text-align: right;
-  font-size: 12px;
-  color: #777;
-  margin-top: 30px;
+  background: #a42412;
 }
 
 @media (max-width: 768px) {
@@ -136,9 +92,5 @@ td[style*="orange"] {
   }
   table, th, td {
     font-size: 13px;
-  }
-  .signature {
-    text-align: center;
-    margin-top: 20px;
   }
 }

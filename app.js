@@ -1,12 +1,25 @@
-// ========= VARIABLES =========
-const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-let ouvriers = {};
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
+  authDomain: "pointage-heures.firebaseapp.com",
+  projectId: "pointage-heures",
+  storageBucket: "pointage-heures.firebasestorage.app",
+  messagingSenderId: "392363086555",
+  appId: "1:392363086555:web:6bfe7f166214443e86b2fe"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 let currentUser = "";
 let currentWeek = "S" + getWeekNumber(new Date());
-let localData = {};
-let datesSemaine = [];
-let currentMonth = new Date().getMonth() + 1;
-const year = new Date().getFullYear();
+
+document.getElementById("password").addEventListener("keydown", e => {
+  if (e.key === "Enter") checkLogin();
+});
 
 function getWeekNumber(d) {
   d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -16,78 +29,72 @@ function getWeekNumber(d) {
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
 
-// ========= CHARGEMENT DES OUVRIERS =========
-function loadOuvriers() {
-  db.collection("ouvriers").get().then(snap=>{
-    ouvriers = {};
-    snap.forEach(doc => ouvriers[doc.id] = doc.data().nom);
-  });
-}
-loadOuvriers();
-
-// ========= LOGIN =========
-function checkLogin() {
+async function checkLogin() {
   const code = document.getElementById("password")?.value.trim();
-  db.collection("ouvriers").doc(code).get().then(doc=>{
-    if(doc.exists) {
-      currentUser = doc.data().nom;
-      const loginDiv = document.getElementById("login");
-      const appDiv = document.getElementById("app");
-      const welcome = document.getElementById("welcome");
-      if(loginDiv) loginDiv.style.display = "none";
-      if(appDiv) appDiv.style.display = "block";
-      if(welcome) welcome.textContent = "Bienvenue " + currentUser;
-
-      adjustDisplayForRole();
-      setTimeout(()=>{
-        if(currentUser === "Admin") {
-          if (typeof initWeekSelector === "function") initWeekSelector();
-          if (typeof loadWeek === "function") loadWeek();
-        }
-        if (typeof loadMonthlyRecap === "function") loadMonthlyRecap();
-      }, 50);
-    } else {
-      const loginError = document.getElementById("loginError");
-      if(loginError) loginError.textContent = "Code inconnu.";
-    }
-  });
-}
-document.getElementById("password").addEventListener("keydown",e=>{
-  if(e.key==="Enter") checkLogin();
-});
-function logout() { location.reload(); }
-
-function adjustDisplayForRole() {
-  const tablesContainer = document.getElementById("tablesContainer");
-  const summaryContainer = document.getElementById("summaryContainer");
-  const monthlyControl = document.getElementById("monthlyControl");
-  const monthlyContainer = document.getElementById("monthlyContainer");
-
-  if(currentUser === "Admin") {
-    if(tablesContainer) tablesContainer.style.display = "block";
-    if(summaryContainer) summaryContainer.style.display = "block";
+  const docSnap = await getDoc(doc(db, "ouvriers", code));
+  if(docSnap.exists()) {
+    currentUser = docSnap.data().nom;
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
+    loadWeekData();
   } else {
-    if(tablesContainer) tablesContainer.style.display = "none";
-    if(summaryContainer) summaryContainer.style.display = "none";
+    document.getElementById("loginError").textContent = "Identifiant inconnu.";
   }
-  if(monthlyControl) monthlyControl.style.display = "block";
-  if(monthlyContainer) monthlyContainer.style.display = "block";
 }
 
-// ========= INIT WEEK SELECTOR PROTÉGÉ =========
-function initWeekSelector() {
-  const weekSelector = document.getElementById("weekSelector");
-  if (!weekSelector) {
-    console.error("initWeekSelector: #weekSelector introuvable");
-    return;
-  }
+async function loadWeekData() {
+  const tableContainer = document.getElementById("tablesContainer");
+  const commentBox = document.getElementById("commentaire");
+  let html = `<table><tr><th>Jour</th><th>Heures</th><th>Absence</th></tr>`;
+  let total = 0;
+  const weekRef = collection(db, "heures");
+  const q = query(weekRef, where("ouvrier", "==", currentUser), where("semaine", "==", currentWeek));
+  const querySnap = await getDocs(q);
+  let dataWeek = {};
+  querySnap.forEach(doc => dataWeek[doc.data().jour] = doc.data());
 
-  weekSelector.innerHTML = "";
-  for (let i = 1; i <= 52; i++) {
-    const opt = document.createElement("option");
-    opt.value = "S" + i;
-    opt.textContent = "Semaine " + i;
-    if ("S" + i === currentWeek) opt.selected = true;
-    weekSelector.appendChild(opt);
-  }
+  days.forEach(day => {
+    const record = dataWeek[day] || {};
+    let heure = record.heure || "";
+    let absence = record.absence || "";
+    if(heure && !isNaN(parseFloat(heure.replace(":", ".")))) total += parseFloat(heure.replace(":", "."));
+    html += `<tr>
+      <td>${day}</td>
+      <td><input type="text" value="${heure}"></td>
+      <td><input list="absences" value="${absence}"></td>
+    </tr>`;
+  });
+  html += `</table>`;
+  tableContainer.innerHTML = html;
+  commentBox.value = (querySnap.docs[0]?.data().commentaire) || "";
+  updateSummary(total);
+}
+
+function updateSummary(total) {
+  const summary = document.getElementById("summaryContainer");
+  let delta = (total - 40).toFixed(2);
+  summary.innerHTML = `<p><strong>Total semaine :</strong> ${total.toFixed(2)} h (${delta >=0 ? "+" : ""}${delta}h)</p>`;
+}
+
+async function saveData() {
+  const rows = document.querySelectorAll("#tablesContainer table tr");
+  let promises = [];
+  rows.forEach((tr, idx) => {
+    if(idx === 0) return;
+    const day = days[idx - 1];
+    const heure = tr.cells[1].querySelector("input").value;
+    const absence = tr.cells[2].querySelector("input").value;
+    const docRef = doc(db, "heures", `${currentUser}_${currentWeek}_${day}`);
+    promises.push(setDoc(docRef, {
+      ouvrier: currentUser,
+      semaine: currentWeek,
+      jour: day,
+      heure: heure,
+      absence: absence,
+      commentaire: document.getElementById("commentaire").value || ""
+    }));
+  });
+  await Promise.all(promises);
+  loadWeekData();
 }

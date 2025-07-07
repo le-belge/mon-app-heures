@@ -2,57 +2,40 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Pointage des heures</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pointage des heures XLG</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="app-title">
+    <img src="logo-xlg.png" alt="Logo XLG">
+    <h1>Pointage des heures</h1>
+  </div>
+
   <div id="login">
-    <h2>Connexion</h2>
-    <input type="password" id="password" placeholder="Mot de passe">
-    <button onclick="checkLogin()">Valider</button>
+    <input type="password" id="password" placeholder="Identifiant (Entrer ou clic)">
+    <button onclick="checkLogin()">Se connecter</button>
     <p id="loginError" style="color:red;"></p>
   </div>
 
   <div id="app" style="display:none;">
     <h2 id="welcome"></h2>
-    <button onclick="logout()">🔙 Déconnexion</button>
-
-    <select id="weekSelector" onchange="loadWeek()" style="margin:10px;"></select>
-
     <div id="tablesContainer"></div>
-    <div id="summaryContainer" style="margin-top:20px;"></div>
-
-    <div id="monthlyControl" style="margin-top:30px;">
-      <label><strong>Mois :</strong></label>
-      <select id="monthSelector">
-        <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
-        <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
-        <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
-        <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
-      </select>
-      <button onclick="loadMonthlyRecap()">📊 Récap mensuel</button>
+    <textarea id="commentaire" class="comment-box" placeholder="Commentaire..."></textarea>
+    <div class="controls">
+      <button onclick="saveData()">Sauvegarder</button>
     </div>
-
-    <div id="monthlyContainer" style="margin-top:20px;"></div>
+    <div id="summaryContainer"></div>
+    <div id="monthlyContainer"></div>
   </div>
 
   <datalist id="absences">
+    <option value="Férié"></option>
     <option value="Congé"></option>
     <option value="Maladie"></option>
     <option value="Formation"></option>
-    <option value="Férié"></option>
   </datalist>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
-    firebase.initializeApp({
-      apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
-      authDomain: "pointage-heures.firebaseapp.com",
-      projectId: "pointage-heures"
-    });
-    const db = firebase.firestore();
-  </script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
