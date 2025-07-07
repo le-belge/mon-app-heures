@@ -1,5 +1,4 @@
 const db = firebase.firestore();
-
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let currentUser = "";
 let currentWeek = "S" + getWeekNumber(new Date());
