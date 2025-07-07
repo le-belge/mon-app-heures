@@ -6,46 +6,36 @@ body {
   padding: 20px;
   text-align: center;
 }
-
-.header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.centered {
+  margin-top: 50px;
 }
-.header .logo {
+.logo {
   width: 80px;
-  margin-right: 20px;
+  margin-bottom: 15px;
 }
-.header h1 {
+h1 {
   color: #d62c1a;
 }
-
-.inputs {
-  margin: 20px 0;
-}
-
 input[type="text"] {
   padding: 8px;
   margin: 5px;
-  width: 150px;
+  width: 180px;
 }
-
 button {
   padding: 8px 20px;
   background: #d62c1a;
-  border: none;
   color: #fff;
-  cursor: pointer;
+  border: none;
   border-radius: 5px;
+  cursor: pointer;
 }
 button:hover {
   background: #a42412;
 }
-
 table {
-  margin: 0 auto 20px auto;
+  margin: 20px auto;
   border-collapse: collapse;
-  width: 300px;
+  width: 320px;
   background: #fff;
 }
 th {
@@ -59,8 +49,15 @@ th, td {
 tr:nth-child(even) {
   background: #f9f9f9;
 }
-
 #recap {
   margin-top: 20px;
   font-weight: bold;
+}
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.header .right {
+  margin-left: auto;
 }

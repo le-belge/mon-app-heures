@@ -5,44 +5,70 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 
-async function charger() {
-  const ouvrier = document.getElementById("ouvrier").value.trim();
-  const semaine = document.getElementById("semaine").value.trim();
-  const recap = document.getElementById("recap");
-  recap.textContent = "Chargement...";
+let currentUser = "";
+let currentWeek = "";
 
+document.addEventListener("DOMContentLoaded", () => {
+  const ouvInput = document.getElementById("ouvrierInput");
+  const semInput = document.getElementById("semaineInput");
+  ouvInput.addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
+  semInput.addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
+
+  if (localStorage.getItem("currentUser") && localStorage.getItem("currentWeek")) {
+    currentUser = localStorage.getItem("currentUser");
+    currentWeek = localStorage.getItem("currentWeek");
+    afficherApp();
+    chargerHeures();
+  }
+});
+
+function connecter() {
+  currentUser = document.getElementById("ouvrierInput").value.trim();
+  currentWeek = document.getElementById("semaineInput").value.trim();
+  if (!currentUser || !currentWeek) return;
+  localStorage.setItem("currentUser", currentUser);
+  localStorage.setItem("currentWeek", currentWeek);
+  afficherApp();
+  chargerHeures();
+}
+
+function afficherApp() {
+  document.getElementById("loginPage").style.display = "none";
+  document.getElementById("appPage").style.display = "block";
+  document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser} - ${currentWeek}`;
+}
+
+async function chargerHeures() {
   const snapshot = await db.collection("heures")
-    .where("ouvrier", "==", ouvrier)
-    .where("semaine", "==", semaine)
+    .where("ouvrier", "==", currentUser)
+    .where("semaine", "==", currentWeek)
     .get();
 
-  if (snapshot.empty) {
-    recap.textContent = `Aucune heure trouvée pour ${ouvrier} semaine ${semaine}`;
-    remplir({});
+  if (!snapshot.empty) {
+    const data = snapshot.docs[0].data();
+    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+      document.getElementById(jour).value = data[jour] || "";
+    });
+    afficherRecap(data.total, data.delta);
   } else {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      remplir(data);
-      recap.textContent = `Heures trouvées : total ${data.total} h, delta ${data.delta} h`;
+    afficherRecap("0.00", "-40.00");
+    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+      document.getElementById(jour).value = "";
     });
   }
 }
 
-function remplir(data) {
-  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
-    document.getElementById(j).value = data[j] || "";
-  });
+function afficherRecap(total, delta) {
+  document.getElementById("recap").textContent = `Total: ${total} h | Delta: ${delta} h`;
 }
 
 async function sauver() {
-  const ouvrier = document.getElementById("ouvrier").value.trim();
-  const semaine = document.getElementById("semaine").value.trim();
   let total = 0;
-  let data = { ouvrier, semaine, timestamp: new Date() };
+  let data = { ouvrier: currentUser, semaine: currentWeek, timestamp: new Date() };
 
-  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
-    const val = document.getElementById(j).value.trim();
-    data[j] = val;
+  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+    const val = document.getElementById(jour).value.trim();
+    data[jour] = val;
     const num = parseFloat(val.replace(":", "."));
     if (!isNaN(num)) total += num;
   });
@@ -50,5 +76,11 @@ async function sauver() {
   data.delta = (total - 40).toFixed(2);
 
   await db.collection("heures").add(data);
-  document.getElementById("recap").textContent = `Sauvegardé : total ${data.total} h, delta ${data.delta} h`;
+  afficherRecap(data.total, data.delta);
+}
+
+function deconnecter() {
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("currentWeek");
+  location.reload();
 }

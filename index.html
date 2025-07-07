@@ -2,35 +2,42 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Pointage des heures</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Pointage des heures XLG</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="header">
+  <div id="loginPage" class="centered">
     <img src="logo-xlg.png" alt="XLG" class="logo">
     <h1>Pointage des heures</h1>
+    <input type="text" id="ouvrierInput" placeholder="Identifiant ouvrier">
+    <input type="text" id="semaineInput" placeholder="Semaine (ex: S23)">
+    <button onclick="connecter()">Se connecter</button>
   </div>
 
-  <div class="inputs">
-    <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Marc)">
-    <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
-    <button onclick="charger()">Charger</button>
+  <div id="appPage" style="display:none;">
+    <div class="header">
+      <img src="logo-xlg.png" alt="XLG" class="logo">
+      <h1>Pointage des heures</h1>
+      <div class="right">
+        <span id="sessionInfo"></span>
+        <button onclick="deconnecter()">Déconnexion</button>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Jour</th><th>Heures</th></tr>
+      <tr><td>Lundi</td><td><input id="lundi"></td></tr>
+      <tr><td>Mardi</td><td><input id="mardi"></td></tr>
+      <tr><td>Mercredi</td><td><input id="mercredi"></td></tr>
+      <tr><td>Jeudi</td><td><input id="jeudi"></td></tr>
+      <tr><td>Vendredi</td><td><input id="vendredi"></td></tr>
+      <tr><td>Samedi</td><td><input id="samedi"></td></tr>
+      <tr><td>Dimanche</td><td><input id="dimanche"></td></tr>
+    </table>
+
+    <div id="recap"></div>
+    <button onclick="sauver()">Sauvegarder</button>
   </div>
-
-  <table>
-    <tr><th>Jour</th><th>Heures</th></tr>
-    <tr><td>Lundi</td><td><input id="lundi"></td></tr>
-    <tr><td>Mardi</td><td><input id="mardi"></td></tr>
-    <tr><td>Mercredi</td><td><input id="mercredi"></td></tr>
-    <tr><td>Jeudi</td><td><input id="jeudi"></td></tr>
-    <tr><td>Vendredi</td><td><input id="vendredi"></td></tr>
-    <tr><td>Samedi</td><td><input id="samedi"></td></tr>
-    <tr><td>Dimanche</td><td><input id="dimanche"></td></tr>
-  </table>
-
-  <button onclick="sauver()">Sauvegarder</button>
-
-  <div id="recap"></div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
