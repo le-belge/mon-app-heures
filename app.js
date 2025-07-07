@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
@@ -16,6 +16,7 @@ const db = getFirestore(app);
 const days = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
 let currentUser = "";
 let currentWeek = "S" + getWeekNumber(new Date());
+let currentDocId = ""; // pour mémoriser l'ID Firestore du doc trouvé
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedUser = localStorage.getItem("currentUser");
@@ -23,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser = savedUser;
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
+    document.getElementById("sessionInfo").style.display = "block";
     document.getElementById("welcome").textContent = `Bienvenue ${currentUser}`;
     initWeekSelector();
     loadWeekData();
@@ -49,6 +51,7 @@ async function checkLogin() {
     localStorage.setItem("currentUser", currentUser);
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
+    document.getElementById("sessionInfo").style.display = "block";
     document.getElementById("welcome").textContent = `Bienvenue ${docSnap.data().nom}`;
     initWeekSelector();
     loadWeekData();
@@ -71,17 +74,22 @@ function initWeekSelector() {
 
 async function loadWeekData() {
   currentWeek = document.getElementById("weekSelector")?.value || currentWeek;
-  const docRef = doc(db, "heures", `${currentUser}_${currentWeek}`);
-  const docSnap = await getDoc(docRef);
-  const tableContainer = document.getElementById("tablesContainer");
-
-  let html = `<div class="user-block"><table><tr><th>Jour</th><th>Heures</th></tr>`;
-  let total = 0;
+  const q = query(collection(db, "heures"),
+    where("ouvrier", "==", currentUser),
+    where("semaine", "==", currentWeek)
+  );
+  const querySnap = await getDocs(q);
   let data = {};
-  if (docSnap.exists()) {
-    data = docSnap.data();
+  currentDocId = "";
+
+  if (!querySnap.empty) {
+    const doc = querySnap.docs[0];
+    data = doc.data();
+    currentDocId = doc.id;
   }
 
+  let total = 0;
+  let html = `<div class="user-block"><table><tr><th>Jour</th><th>Heures</th></tr>`;
   days.forEach(day => {
     let heure = data[day] || "";
     let hValue = heure.includes(":") ? parseFloat(heure.replace(":", ".")) : parseFloat(heure);
@@ -91,13 +99,12 @@ async function loadWeekData() {
       <td><input type="text" id="input_${day}" value="${heure}"></td>
     </tr>`;
   });
-
   html += `</table>
     <textarea id="commentaire" class="comment-box" placeholder="Commentaire...">${data.commentaire || ""}</textarea>
     <div><button onclick="saveData()">Sauvegarder</button></div>
   </div>`;
-  tableContainer.innerHTML = html;
 
+  document.getElementById("tablesContainer").innerHTML = html;
   updateSummary(total, data.delta);
 }
 
@@ -124,8 +131,12 @@ async function saveData() {
   newData.delta = (total - 40).toFixed(2);
   newData.commentaire = document.getElementById("commentaire")?.value || "";
 
-  const docRef = doc(db, "heures", `${currentUser}_${currentWeek}`);
-  await setDoc(docRef, newData);
+  if (currentDocId) {
+    await setDoc(doc(db, "heures", currentDocId), newData);
+  } else {
+    await setDoc(doc(collection(db, "heures")), newData);
+  }
+
   loadWeekData();
 }
 
