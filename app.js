@@ -7,38 +7,31 @@ const db = firebase.firestore();
 
 let currentUser = "";
 let currentWeek = "";
+const codeToName = {
+  "admin08110": "Admin",
+  "ba08110": "Ben",
+  "do08110": "Olivier",
+  "lm08110": "Marc",
+  "nm08110": "Mika",
+  "ra08110": "Renaud"
+};
 
 document.addEventListener("DOMContentLoaded", () => {
-  const ouvInput = document.getElementById("ouvrierInput");
-  const semInput = document.getElementById("semaineInput");
-  ouvInput.addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
-  semInput.addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
-
-  if (localStorage.getItem("currentUser") && localStorage.getItem("currentWeek")) {
-    currentUser = localStorage.getItem("currentUser");
-    currentWeek = localStorage.getItem("currentWeek");
-    afficherApp();
-    chargerHeures();
-  }
+  document.getElementById("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") connecter(); });
 });
 
 function connecter() {
-  currentUser = document.getElementById("ouvrierInput").value.trim();
-  currentWeek = document.getElementById("semaineInput").value.trim();
-  if (!currentUser || !currentWeek) return;
-  localStorage.setItem("currentUser", currentUser);
-  localStorage.setItem("currentWeek", currentWeek);
-  afficherApp();
-  chargerHeures();
-}
-
-function afficherApp() {
+  const code = document.getElementById("codeInput").value.trim();
+  if (!code) return;
+  currentUser = codeToName[code] || code;
   document.getElementById("loginPage").style.display = "none";
   document.getElementById("appPage").style.display = "block";
-  document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser} - ${currentWeek}`;
+  document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser}`;
 }
 
 async function chargerHeures() {
+  currentWeek = document.getElementById("semaineInput").value.trim();
+  if (!currentWeek) return;
   const snapshot = await db.collection("heures")
     .where("ouvrier", "==", currentUser)
     .where("semaine", "==", currentWeek)
@@ -82,8 +75,6 @@ async function sauver() {
 }
 
 function deconnecter() {
-  localStorage.removeItem("currentUser");
-  localStorage.removeItem("currentWeek");
   location.reload();
 }
 
@@ -100,4 +91,13 @@ function exporterCSV() {
   link.href = URL.createObjectURL(blob);
   link.download = `${currentUser}_${currentWeek}.csv`;
   link.click();
+}
+
+function ajouterOuvrier() {
+  const code = document.getElementById("newCode").value.trim();
+  const nom = document.getElementById("newName").value.trim();
+  if (code && nom) {
+    codeToName[code] = nom;
+    alert(`Ajouté: ${code} → ${nom}`);
+  }
 }

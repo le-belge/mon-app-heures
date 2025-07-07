@@ -9,8 +9,7 @@
   <div id="loginPage" class="centered">
     <img src="logo-xlg.png" alt="XLG" class="logo">
     <h1>Pointage des heures</h1>
-    <input type="text" id="ouvrierInput" placeholder="Identifiant ouvrier">
-    <input type="text" id="semaineInput" placeholder="Semaine (ex: S23)">
+    <input type="text" id="codeInput" placeholder="Code ouvrier (ex: nm08110)">
     <button onclick="connecter()">Se connecter</button>
   </div>
 
@@ -23,6 +22,8 @@
         <button onclick="deconnecter()">Déconnexion</button>
       </div>
     </div>
+
+    <input type="text" id="semaineInput" placeholder="Semaine (ex: S23)" oninput="chargerHeures()">
 
     <table>
       <tr><th>Jour</th><th>Heures</th></tr>
@@ -39,6 +40,13 @@
     <button onclick="sauver()">Sauvegarder</button>
     <button onclick="window.print()">Imprimer</button>
     <button onclick="exporterCSV()">Exporter CSV</button>
+
+    <div id="adminAdd" style="margin-top:20px;">
+      <h3>Ajouter un ouvrier</h3>
+      <input type="text" id="newCode" placeholder="Code (ex: zz08110)">
+      <input type="text" id="newName" placeholder="Nom (ex: Zorro)">
+      <button onclick="ajouterOuvrier()">Ajouter</button>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
