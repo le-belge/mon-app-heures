@@ -2,15 +2,21 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Pointage heures Firestore unique</title>
+  <title>Pointage des heures</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 30px; }
+    table { margin: 20px auto; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    input { width: 60px; }
+  </style>
 </head>
 <body>
-  <h2>Pointage des heures</h2>
-  <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Marc)">
+  <h2>Pointage des heures Firestore</h2>
+  <input type="text" id="ouvrier" placeholder="Ouvrier (ex: Oliv)">
   <input type="text" id="semaine" placeholder="Semaine (ex: S23)">
   <button onclick="charger()">Charger</button>
 
-  <table border="1" style="margin-top:20px;">
+  <table>
     <tr><th>Jour</th><th>Heures</th></tr>
     <tr><td>Lundi</td><td><input id="lundi"></td></tr>
     <tr><td>Mardi</td><td><input id="mardi"></td></tr>
@@ -21,9 +27,8 @@
     <tr><td>Dimanche</td><td><input id="dimanche"></td></tr>
   </table>
 
-  <button onclick="sauver()" style="margin-top:15px;">Sauvegarder</button>
-
-  <pre id="resultat" style="margin-top:20px;"></pre>
+  <button onclick="sauver()">Sauvegarder</button>
+  <pre id="resultat"></pre>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -38,22 +43,29 @@
     async function charger() {
       const ouvrier = document.getElementById("ouvrier").value.trim();
       const semaine = document.getElementById("semaine").value.trim();
-      const docRef = db.collection("heures").doc(`${ouvrier}_${semaine}`);
-      const docSnap = await docRef.get();
+      const res = document.getElementById("resultat");
+      res.textContent = "Chargement...";
 
-      if (!docSnap.exists) {
-        document.getElementById("resultat").textContent = `AUCUN enregistrement trouvé pour ${ouvrier} semaine ${semaine}`;
-        remplirTableau({});
+      const snapshot = await db.collection("heures")
+        .where("ouvrier", "==", ouvrier)
+        .where("semaine", "==", semaine)
+        .get();
+
+      if (snapshot.empty) {
+        res.textContent = `Aucune heure trouvée pour ${ouvrier} semaine ${semaine}`;
+        remplir({});
       } else {
-        const data = docSnap.data();
-        remplirTableau(data);
-        document.getElementById("resultat").textContent = `Données chargées pour ${ouvrier} semaine ${semaine}`;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          remplir(data);
+          res.textContent = `Heures trouvées : total ${data.total} h, delta ${data.delta} h`;
+        });
       }
     }
 
-    function remplirTableau(data) {
-      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-        document.getElementById(jour).value = data[jour] || "";
+    function remplir(data) {
+      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
+        document.getElementById(j).value = data[j] || "";
       });
     }
 
@@ -61,20 +73,19 @@
       const ouvrier = document.getElementById("ouvrier").value.trim();
       const semaine = document.getElementById("semaine").value.trim();
       let total = 0;
-      let newData = { ouvrier, semaine, timestamp: new Date() };
+      let data = { ouvrier, semaine, timestamp: new Date() };
 
-      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-        const val = document.getElementById(jour).value.trim();
-        newData[jour] = val;
+      ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(j => {
+        const val = document.getElementById(j).value.trim();
+        data[j] = val;
         const num = parseFloat(val.replace(":", "."));
         if (!isNaN(num)) total += num;
       });
+      data.total = total.toFixed(2);
+      data.delta = (total - 40).toFixed(2);
 
-      newData.total = total.toFixed(2);
-      newData.delta = (total - 40).toFixed(2);
-
-      await db.collection("heures").doc(`${ouvrier}_${semaine}`).set(newData);
-      document.getElementById("resultat").textContent = `Heures sauvegardées pour ${ouvrier} semaine ${semaine}`;
+      await db.collection("heures").add(data);
+      document.getElementById("resultat").textContent = `Sauvegardé : total ${data.total} h, delta ${data.delta} h`;
     }
   </script>
 </body>
