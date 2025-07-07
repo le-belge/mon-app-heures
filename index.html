@@ -7,28 +7,24 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="header">
-    <div class="app-title">
-      <img src="logo-xlg.png" alt="Logo XLG">
-      <h1>Pointage des heures</h1>
-    </div>
-    <div class="session-info">
-      <span id="welcome"></span>
-      <button onclick="logout()">Déconnexion</button>
-    </div>
+  <div class="app-title centered">
+    <img src="logo-xlg.png" alt="Logo XLG">
+    <h1>Pointage des heures</h1>
   </div>
 
-  <div id="login">
-    <div class="app-title">
-      <img src="logo-xlg.png" alt="Logo XLG">
-    </div>
+  <div id="login" class="centered">
+    <img src="logo-xlg.png" alt="Logo XLG" class="login-logo">
     <input type="password" id="password" placeholder="Identifiant (Entrer ou clic)">
     <button onclick="checkLogin()">Se connecter</button>
     <p id="loginError" style="color:red;"></p>
   </div>
 
   <div id="app" style="display:none;">
-    <div class="week-control">
+    <div class="centered">
+      <h2 id="welcome"></h2>
+    </div>
+
+    <div class="centered controls">
       <label><strong>Semaine :</strong></label>
       <select id="weekSelector" onchange="loadWeekData()"></select>
       <button onclick="exportCSV()">Exporter CSV</button>
@@ -37,12 +33,12 @@
 
     <div id="tablesContainer"></div>
 
-    <div class="recap-container">
+    <div class="recap-container centered">
       <h3>Récapitulatif des totaux</h3>
       <div id="summaryContainer"></div>
     </div>
 
-    <div class="annual-container">
+    <div class="annual-container centered">
       <h3>Récapitulatif annuel par ouvrier</h3>
       <div id="monthlyContainer"></div>
     </div>
