@@ -16,7 +16,7 @@ body {
 h1 {
   color: #d62c1a;
 }
-input[type="text"] {
+input[type="text"], select {
   padding: 8px;
   margin: 5px;
   width: 180px;
@@ -53,11 +53,17 @@ tr:nth-child(even) {
   margin-top: 20px;
   font-weight: bold;
 }
+.buttons {
+  margin-top: 20px;
+}
+.buttons button {
+  margin: 0 5px;
+}
 .header {
   display: flex;
   justify-content: center;
   align-items: center;
 }
-.header .right {
-  margin-left: auto;
+.header h1 {
+  font-size: 20px;
 }

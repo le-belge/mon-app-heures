@@ -14,47 +14,38 @@
   </div>
 
   <div id="appPage" style="display:none;">
-    <div id="adminPage" style="display:none;">
-      <div class="header">
-        <h1>Bienvenu Admin <button onclick="deconnecter()">Déconnexion</button></h1>
-      </div>
-      <div id="adminContent"></div>
-      <button onclick="exporterCSV()">Exporter CSV</button>
-      <button onclick="window.print()">Imprimer</button>
+    <div class="header">
+      <h1>Pointage des heures Bienvenue <span id="welcome"></span> <button onclick="deconnecter()">Déconnexion</button></h1>
     </div>
 
     <div id="workerPage" style="display:none;">
-      <div class="header">
-        <img src="logo-xlg.png" alt="XLG" class="logo">
-        <h1>Pointage des heures</h1>
-        <div class="right">
-          <span id="sessionInfo"></span>
-          <button onclick="deconnecter()">Déconnexion</button>
-        </div>
-      </div>
-      <input type="text" id="semaineInput" placeholder="Semaine (ex: S23)" oninput="chargerHeures()">
+      <select id="semaineSelect" onchange="chargerHeures()"></select>
 
       <table>
-        <tr><th>Jour</th><th>Heures</th></tr>
-        <tr><td>Lundi</td><td><input id="lundi"></td></tr>
-        <tr><td>Mardi</td><td><input id="mardi"></td></tr>
-        <tr><td>Mercredi</td><td><input id="mercredi"></td></tr>
-        <tr><td>Jeudi</td><td><input id="jeudi"></td></tr>
-        <tr><td>Vendredi</td><td><input id="vendredi"></td></tr>
-        <tr><td>Samedi</td><td><input id="samedi"></td></tr>
-        <tr><td>Dimanche</td><td><input id="dimanche"></td></tr>
+        <tr><th>Jour</th><th>Date</th><th>Heures</th></tr>
+        <tr><td>Lundi</td><td id="dateLundi"></td><td><input id="lundi"></td></tr>
+        <tr><td>Mardi</td><td id="dateMardi"></td><td><input id="mardi"></td></tr>
+        <tr><td>Mercredi</td><td id="dateMercredi"></td><td><input id="mercredi"></td></tr>
+        <tr><td>Jeudi</td><td id="dateJeudi"></td><td><input id="jeudi"></td></tr>
+        <tr><td>Vendredi</td><td id="dateVendredi"></td><td><input id="vendredi"></td></tr>
+        <tr><td>Samedi</td><td id="dateSamedi"></td><td><input id="samedi"></td></tr>
+        <tr><td>Dimanche</td><td id="dateDimanche"></td><td><input id="dimanche"></td></tr>
       </table>
 
       <div id="recap"></div>
-      <button onclick="sauver()">Sauvegarder</button>
-      <button onclick="window.print()">Imprimer</button>
-      <button onclick="exporterCSV()">Exporter CSV</button>
+      <div class="buttons">
+        <button onclick="sauver()">Sauvegarder</button>
+        <button onclick="window.print()">Imprimer</button>
+        <button onclick="exporterCSV()">Exporter CSV</button>
+      </div>
+    </div>
 
-      <div id="adminAdd" style="margin-top:20px;">
-        <h3>Ajouter un ouvrier</h3>
-        <input type="text" id="newCode" placeholder="Code">
-        <input type="text" id="newName" placeholder="Nom">
-        <button onclick="ajouterOuvrier()">Ajouter</button>
+    <div id="adminPage" style="display:none;">
+      <select id="semaineAdminSelect" onchange="chargerRecapAdmin()"></select>
+      <div id="adminContent"></div>
+      <div class="buttons">
+        <button onclick="window.print()">Imprimer</button>
+        <button onclick="exporterCSV()">Exporter CSV</button>
       </div>
     </div>
   </div>

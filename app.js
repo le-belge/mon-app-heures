@@ -1,15 +1,11 @@
 firebase.initializeApp({
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
   authDomain: "pointage-heures.firebaseapp.com",
-  projectId: "pointage-heures",
-  storageBucket: "pointage-heures.firebaseapp.com",
-  messagingSenderId: "392363086555",
-  appId: "1:392363086555:web:6bfe7f166214443e86b2fe"
+  projectId: "pointage-heures"
 });
 const db = firebase.firestore();
 
 let currentUser = "";
-let currentWeek = "";
 const codeToName = {
   "admin08110": "Admin",
   "nm08110": "Mika",
@@ -23,46 +19,61 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("codeInput").addEventListener("keydown", e => { 
     if (e.key === "Enter") connecter(); 
   });
+  remplirDates();
+  remplirSelectSemaines();
 });
 
-async function connecter() {
+function remplirDates() {
+  const today = new Date();
+  for(let i=0;i<7;i++){
+    let d = new Date(today);
+    d.setDate(today.getDate() - today.getDay() + 1 + i);
+    let jour = ["dateLundi","dateMardi","dateMercredi","dateJeudi","dateVendredi","dateSamedi","dateDimanche"];
+    document.getElementById(jour[i]).textContent = d.toLocaleDateString();
+  }
+}
+
+function remplirSelectSemaines() {
+  const s = ["S23","S24","S25","S26"];
+  s.forEach(sem => {
+    document.getElementById("semaineSelect").innerHTML += `<option>${sem}</option>`;
+    document.getElementById("semaineAdminSelect").innerHTML += `<option>${sem}</option>`;
+  });
+}
+
+function connecter() {
   const code = document.getElementById("codeInput").value.trim();
-  if (!code) return;
   currentUser = codeToName[code] || code;
   document.getElementById("loginPage").style.display = "none";
   document.getElementById("appPage").style.display = "block";
-
-  if (code === "admin08110") {
+  document.getElementById("welcome").textContent = currentUser;
+  if(code === "admin08110"){
     document.getElementById("adminPage").style.display = "block";
     chargerRecapAdmin();
   } else {
     document.getElementById("workerPage").style.display = "block";
-    document.getElementById("sessionInfo").textContent = `Bienvenue ${currentUser}`;
-    if (code !== "admin08110") document.getElementById("adminAdd").style.display = "none";
+    chargerHeures();
   }
 }
 
 async function chargerHeures() {
-  currentWeek = document.getElementById("semaineInput").value.trim();
-  if (!currentWeek) return;
+  const semaine = document.getElementById("semaineSelect").value;
   const snapshot = await db.collection("heures")
     .where("ouvrier", "==", currentUser)
-    .where("semaine", "==", currentWeek)
+    .where("semaine", "==", semaine)
     .get();
   if (!snapshot.empty) {
     const data = snapshot.docs[0].data();
-    remplirInputs(data);
+    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+      document.getElementById(jour).value = data[jour] || "";
+    });
     afficherRecap(data.total, data.delta);
   } else {
-    remplirInputs({});
+    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
+      document.getElementById(jour).value = "";
+    });
     afficherRecap("0.00", "-40.00");
   }
-}
-
-function remplirInputs(data) {
-  ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-    document.getElementById(jour).value = data[jour] || "";
-  });
 }
 
 function afficherRecap(total, delta) {
@@ -70,8 +81,9 @@ function afficherRecap(total, delta) {
 }
 
 async function sauver() {
+  const semaine = document.getElementById("semaineSelect").value;
   let total = 0;
-  let data = { ouvrier: currentUser, semaine: currentWeek, timestamp: new Date() };
+  let data = { ouvrier: currentUser, semaine: semaine, timestamp: new Date() };
   ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
     const val = document.getElementById(jour).value.trim();
     data[jour] = val;
@@ -85,11 +97,12 @@ async function sauver() {
 }
 
 async function chargerRecapAdmin() {
-  const snapshot = await db.collection("heures").get();
-  let html = "<table><tr><th>Ouvrier</th><th>Semaine</th><th>Total</th><th>Delta</th></tr>";
+  const semaine = document.getElementById("semaineAdminSelect").value;
+  const snapshot = await db.collection("heures").where("semaine", "==", semaine).get();
+  let html = "<table><tr><th>Ouvrier</th><th>Lundi</th><th>Mardi</th><th>Mercredi</th><th>Jeudi</th><th>Vendredi</th><th>Samedi</th><th>Dimanche</th><th>Total</th><th>Delta</th></tr>";
   snapshot.forEach(doc => {
     const d = doc.data();
-    html += `<tr><td>${d.ouvrier}</td><td>${d.semaine}</td><td>${d.total}</td><td>${d.delta}</td></tr>`;
+    html += `<tr><td>${d.ouvrier}</td><td>${d.lundi||""}</td><td>${d.mardi||""}</td><td>${d.mercredi||""}</td><td>${d.jeudi||""}</td><td>${d.vendredi||""}</td><td>${d.samedi||""}</td><td>${d.dimanche||""}</td><td>${d.total}</td><td>${d.delta}</td></tr>`;
   });
   html += "</table>";
   document.getElementById("adminContent").innerHTML = html;
@@ -100,24 +113,15 @@ function deconnecter() {
 }
 
 function exporterCSV() {
-  let csv = "Ouvrier,Semaine,Total,Delta\n";
+  let csv = "Ouvrier,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche,Total,Delta\n";
   document.querySelectorAll("#adminContent table tr").forEach((tr,i) => {
     if(i==0) return;
     let tds = tr.querySelectorAll("td");
-    csv += `${tds[0].innerText},${tds[1].innerText},${tds[2].innerText},${tds[3].innerText}\n`;
+    csv += Array.from(tds).map(td=>td.innerText).join(",")+"\n";
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = `admin_recap.csv`;
   link.click();
-}
-
-function ajouterOuvrier() {
-  const code = document.getElementById("newCode").value.trim();
-  const nom = document.getElementById("newName").value.trim();
-  if (code && nom) {
-    codeToName[code] = nom;
-    alert(`Ajouté: ${code} → ${nom}`);
-  }
 }
