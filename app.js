@@ -34,11 +34,10 @@ function remplirDates() {
 }
 
 function remplirSelectSemaines() {
-  const s = ["S23","S24","S25","S26"];
-  s.forEach(sem => {
-    document.getElementById("semaineSelect").innerHTML += `<option>${sem}</option>`;
-    document.getElementById("semaineAdminSelect").innerHTML += `<option>${sem}</option>`;
-  });
+  for(let i=23;i<=52;i++){
+    document.getElementById("semaineSelect").innerHTML += `<option>S${i}</option>`;
+    document.getElementById("semaineAdminSelect").innerHTML += `<option>S${i}</option>`;
+  }
 }
 
 function connecter() {
