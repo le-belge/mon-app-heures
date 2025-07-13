@@ -156,7 +156,7 @@ async function chargerDonneesAdmin() {
   });
 }
 
-// --- Affichage Ouvrier ---
+// --- Affichage ouvrier (avec toggle saisie / statut)
 function renderSemaineSelect() {
   const recapHeader = document.querySelector('.recap-header');
   recapHeader.innerHTML = `
@@ -364,7 +364,7 @@ async function sauvegarderSemaine(nomOuvrier) {
   }
 }
 
-// --- Affichage récap mensuel ouvrier ---
+// --- Récap mensuel ouvrier ---
 function updateRecapOuvrierMois(nomOuvrier) {
   const selectMois = document.getElementById('selectMois');
   const mois = selectMois.value;
@@ -401,7 +401,7 @@ function updateRecapOuvrierMois(nomOuvrier) {
   document.getElementById('tableRecapContainer').innerHTML = html;
 }
 
-// --- Affichage Admin ---
+// --- Affichage admin ---
 async function afficherRecapAdmin() {
   const ouvSnap = await db.collection("ouvriers").get();
   let ouvriers = ouvSnap.docs.map(doc => doc.data().nom);
@@ -621,6 +621,7 @@ function updateRecapAdminMois(ouvriers) {
   html += `</table>`;
   document.getElementById('tableAdminContainer').innerHTML = html;
 
+  // réattache les événements boutons/statuts
   document.querySelectorAll('.btnStatut').forEach(btn => {
     btn.onclick = function(e) {
       e.preventDefault();
@@ -668,36 +669,83 @@ function updateRecapAdminMois(ouvriers) {
   updateTotalsAdmin();
 }
 
-async function sauvegarderMois(nomOuvrier) {
-  const mois = document.getElementById('selectMois').value;
-  const joursMois = getJoursDuMois(mois);
-  let data = { ouvrier: nomOuvrier, timestamp: new Date() };
-  joursMois.forEach(j => {
-    const select = document.querySelector(`#recap-ouvrier .select-jour[data-jour="${j.key}"]`);
-    const input = document.querySelector(`#recap-ouvrier .input-jour[data-jour="${j.key}"]`);
-    let val = "";
-    if(select && select.style.display === "none") val = input ? input.value.trim() : "";
-    else val = select ? select.value : "";
-    data[j.key] = val;
-  });
-  try {
-    await db.collection("heures").add(data);
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').innerText = "Enregistré ✔";
-    setTimeout(() => {
-      afficherRecapOuvrier(nomOuvrier);
-      document.getElementById('saveNotif').style.display = "none";
-    }, 1200);
-  } catch (e) {
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').style.color = "#d22";
-    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
-    setTimeout(() => {
-      document.getElementById('saveNotif').style.display = "none";
-    }, 3500);
+function updateTotalsAdmin(ouvrier = null) {
+  let rows;
+  if(ouvrier) {
+    rows = [document.querySelector(`tr[data-ouvrier="${ouvrier}"]`)];
+  } else {
+    rows = Array.from(document.querySelectorAll('#tableAdminContainer table tr[data-ouvrier]'));
   }
+  rows.forEach(row => {
+    if(!row) return;
+    const nom = row.getAttribute('data-ouvrier');
+    const selectEls = Array.from(document.querySelectorAll(`.select-jour-admin[data-ouvrier="${nom}"]`));
+    const inputEls = Array.from(document.querySelectorAll(`.input-jour-admin[data-ouvrier="${nom}"]`));
+
+    let maladie = 0, conge = 0, formation = 0, totalHeures = 0;
+
+    for(let i = 0; i < selectEls.length; i++) {
+      const sel = selectEls[i];
+      const inp = inputEls[i];
+      let val = sel.style.display === "none" ? inp.value.trim() : sel.value;
+
+      if(val === "Maladie") maladie++;
+      else if(val === "Congé") conge++;
+      else if(val === "Formation") formation++;
+      else if(/^\d{1,2}:\d{2}$/.test(val)) {
+        const [h,m] = val.split(":").map(Number);
+        totalHeures += h + m / 60;
+      }
+    }
+    row.querySelector('.total-heures').textContent = formatHeures(totalHeures);
+    row.querySelector('.total-maladie').textContent = maladie;
+    row.querySelector('.total-conge').textContent = conge;
+    row.querySelector('.total-formation').textContent = formation;
+  });
 }
 
+// --- Sauvegarde admin semaine ---
+async function sauvegarderSemaineAdmin(ouvriers) {
+  const semaine = document.getElementById('selectSemaineAdmin').value;
+
+  for(const nom of ouvriers) {
+    let row = document.querySelector(`tr[data-ouvrier="${nom}"]`);
+    if(!row) continue;
+
+    const data = { ouvrier: nom, semaine, timestamp: new Date() };
+
+    const selectEls = Array.from(document.querySelectorAll(`.select-jour-admin[data-ouvrier="${nom}"]`));
+    const inputEls = Array.from(document.querySelectorAll(`.input-jour-admin[data-ouvrier="${nom}"]`));
+
+    for(let i = 0; i < selectEls.length; i++) {
+      const sel = selectEls[i];
+      const inp = inputEls[i];
+      const key = sel.getAttribute('data-jour');
+      data[key] = sel.style.display === "none" ? inp.value.trim() : sel.value;
+    }
+
+    const heuresSnap = await db.collection("heures")
+      .where("ouvrier", "==", nom)
+      .where("semaine", "==", semaine)
+      .get();
+
+    try {
+      if(!heuresSnap.empty) {
+        await db.collection("heures").doc(heuresSnap.docs[0].id).set(data, {merge:true});
+      } else {
+        await db.collection("heures").add(data);
+      }
+    } catch(e) {
+      console.error(`Erreur sauvegarde semaine pour ${nom}`, e);
+    }
+  }
+
+  alert("Toutes les données ont été sauvegardées.");
+  await chargerDonneesAdmin();
+  afficherRecapAdmin();
+}
+
+// --- Sauvegarde admin mois ---
 async function sauvegarderMoisAdmin(ouvriers) {
   const mois = document.getElementById('selectMoisAdmin').value;
   const joursMois = getJoursDuMois(mois);
@@ -727,7 +775,7 @@ async function sauvegarderMoisAdmin(ouvriers) {
   afficherRecapAdmin();
 }
 
-// Export CSV
+// --- Export CSV ---
 function exportRecapOuvrier(nomOuvrier) {
   const html = document.getElementById('tableRecapContainer').innerHTML;
   if (!html) return;
@@ -741,11 +789,9 @@ function exportRecapOuvrier(nomOuvrier) {
   link.click();
   document.body.removeChild(link);
 }
-
 function exportRecapOuvrierMois(nomOuvrier) {
   exportRecapOuvrier(nomOuvrier);
 }
-
 function exportRecapAdminSemaine() {
   const html = document.getElementById('tableAdminContainer').innerHTML;
   if (!html) return;
@@ -759,7 +805,6 @@ function exportRecapAdminSemaine() {
   link.click();
   document.body.removeChild(link);
 }
-
 function exportRecapAdminMois() {
   exportRecapAdminSemaine();
 }
