@@ -1,3 +1,4 @@
+/* Global */
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #f6f6f6;
@@ -75,6 +76,8 @@ main {
 #tableRecapContainer, #tableAdminContainer {
   width: 100%;
 }
+
+/* Tables */
 #recap-ouvrier table, #recap-admin table {
   width: 100%;
   min-width: 0;
@@ -110,6 +113,8 @@ main {
   font-weight: bold;
   border-top: 2px solid #d22;
 }
+
+/* Buttons */
 #recap-ouvrier button, #recap-admin button, .btnStatut {
   background: #d22;
   color: #fff;
@@ -143,6 +148,8 @@ main {
   margin-left: 20px;
   border-radius: 5px;
 }
+
+/* Inputs/selects */
 .input-jour, .select-jour {
   font-size: 1em;
   border: 1px solid #bbb;
@@ -163,6 +170,28 @@ main {
   border: 1.5px solid #d22;
   background: #fff6f6;
 }
+
+/* Tooltips */
+td[title] {
+  position: relative;
+}
+td[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  background: #d22;
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 0.8em;
+  border-radius: 4px;
+  white-space: nowrap;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Notifications */
 #saveNotif {
   font-weight: bold;
   font-size: 1em;
@@ -191,6 +220,8 @@ main {
   cursor: pointer;
   z-index: 99;
 }
+
+/* Responsive */
 @media (max-width: 850px) {
   main {
     max-width: 99vw;
