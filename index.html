@@ -1,46 +1,53 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>XLG Pointage des Heures</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 <body>
   <header>
-    <img src="logo-xlg.png" alt="Logo XLG" id="logo-xlg">
+    <img src="logo-xlg.png" alt="Logo XLG" id="logo-xlg" />
     <h1>XLG Pointage des Heures</h1>
   </header>
 
   <main>
     <div id="login">
       <h2>Connexion</h2>
-      <input type="text" id="codeInput" placeholder="Code ouvrier" autocomplete="off" autofocus>
+      <input
+        type="text"
+        id="codeInput"
+        placeholder="Code ouvrier"
+        autocomplete="off"
+        autofocus
+      />
       <button id="btnLogin">Se connecter</button>
       <div id="login-error" class="notif"></div>
     </div>
 
-    <div id="zone-app" style="display:none;">
+    <div id="zone-app" style="display: none;">
       <div id="welcome"></div>
-      <div id="recap-ouvrier" style="display:none;">
+      <div id="recap-ouvrier" style="display: none;">
         <h2 class="titre-rouge">Mon récapitulatif</h2>
         <div class="recap-header"></div>
         <div id="tableRecapContainer"></div>
       </div>
-      <div id="recap-admin" style="display:none;">
+      <div id="recap-admin" style="display: none;">
         <h2 class="titre-rouge">Récapitulatif global</h2>
         <div class="recap-header-admin"></div>
         <div id="tableAdminContainer"></div>
       </div>
-      <button id="btnLogout" style="display:none;">Déconnexion</button>
+      <button id="btnLogout" style="display: none;">Déconnexion</button>
     </div>
   </main>
 
   <footer>
-    <p>&copy; 2025 XLG - Gestion du temps</p>
+    <p>© 2025 XLG - Gestion du temps</p>
   </footer>
+
   <script src="app.js"></script>
 </body>
 </html>
