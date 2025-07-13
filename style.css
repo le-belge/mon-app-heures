@@ -1,185 +1,68 @@
 body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f6f6f6;
-  margin: 0;
-  padding: 0;
+  font-family: Arial, sans-serif;
+  margin: 10px 20px;
+  background: #fff;
+  color: #222;
 }
 header {
   text-align: center;
-  padding: 16px 0 0 0;
+  margin-bottom: 10px;
 }
 #logo-xlg {
-  width: 80px;
-  vertical-align: middle;
-}
-h1 {
-  color: #d22;
-  font-weight: 900;
-  margin-top: 4px;
-  letter-spacing: 2px;
-  font-size: 2em;
-}
-main {
-  max-width: 780px;
-  margin: 15px auto;
-  padding: 5px 2px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 2px 8px #ddd;
-  min-height: 480px;
+  max-width: 120px;
+  height: auto;
 }
 #login {
   text-align: center;
-  margin-top: 40px;
+  margin-bottom: 15px;
 }
 #codeInput {
-  padding: 9px 16px;
-  font-size: 1.1em;
-  border-radius: 20px;
-  border: 1px solid #bbb;
-  margin-bottom: 8px;
+  width: 180px;
+  padding: 8px;
+  font-size: 1em;
+  border: 1px solid #999;
+  border-radius: 3px;
 }
 #btnLogin {
-  background: #d22;
-  color: #fff;
-  border: none;
-  border-radius: 25px;
-  padding: 8px 28px;
-  font-size: 1.09em;
+  padding: 8px 14px;
+  font-size: 1em;
+  margin-left: 8px;
   cursor: pointer;
-  margin-left: 7px;
 }
 .notif {
-  color: #d22;
+  color: red;
   margin-top: 8px;
   font-weight: bold;
+  text-align: center;
 }
-#recap-ouvrier, #recap-admin {
-  margin: 16px 0 0 0;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 6px #eee;
-  padding: 13px 3px 20px 3px;
-  max-width: 99vw;
-  margin-left: auto;
-  margin-right: auto;
+#zone-app {
+  max-width: 100%;
 }
 .recap-header, .recap-header-admin {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   margin-bottom: 12px;
-  flex-wrap: wrap;
 }
-#tableRecapContainer, #tableAdminContainer {
-  overflow-x: auto;
+#tableRecapContainer table,
+#tableAdminContainer table {
   width: 100%;
-}
-#recap-ouvrier table, #recap-admin table {
-  width: 100%;
-  min-width: 0;
-  table-layout: fixed;
-  font-size: 0.95em;
   border-collapse: collapse;
-  margin-top: 6px;
-  background: #fff;
+  font-size: 0.9em;
 }
-#recap-ouvrier th, #recap-ouvrier td,
-#recap-admin th, #recap-admin td {
-  border: 1px solid #eee;
-  padding: 5px 1px;
+#tableRecapContainer th,
+#tableRecapContainer td,
+#tableAdminContainer th,
+#tableAdminContainer td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
   text-align: center;
-  font-size: 0.94em;
   word-break: break-word;
 }
-#recap-ouvrier th, #recap-admin th {
-  background: #d22;
-  color: #fff;
-  font-size: 1.01em;
-  letter-spacing: 1px;
-  font-weight: 600;
-  padding: 7px 1px;
-}
-#recap-ouvrier tr:nth-child(even), #recap-admin tr:nth-child(even) {
-  background: #f8f8f8;
-}
-#recap-ouvrier tr.total-row, #recap-admin tr.total-row {
-  background: #ffe5e5;
+#tableRecapContainer th,
+#tableAdminContainer th {
+  background-color: #eee;
   font-weight: bold;
-  border-top: 2px solid #d22;
-}
-#recap-ouvrier button, #recap-admin button {
-  background: #d22;
-  color: #fff;
-  border: none;
-  border-radius: 19px;
-  padding: 7px 17px;
-  cursor: pointer;
-  font-size: 1em;
-}
-#btnSave {
-  background: #1c8d2f !important;
-  color: #fff !important;
-  font-weight: bold;
-  margin-left: 20px;
-}
-.input-jour, .select-jour {
-  font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 1px 3px;
-  background: #f8f8f8;
-  width: 66px;
-  margin-bottom: 1px;
-}
-.select-jour {
-  width: 75px;
-}
-#saveNotif {
-  font-weight: bold;
-  font-size: 1em;
-  margin-left: 14px;
-  color: #1c8d2f;
-}
-.titre-rouge {
-  color: #d22;
-  font-weight: bold;
-}
-#welcome {
-  font-size: 1.1em;
-  color: #333;
-  margin-bottom: 14px;
 }
 #btnLogout {
-  background: #d22;
-  color: #fff;
-  border: none;
-  border-radius: 22px;
-  padding: 7px 16px;
-  font-size: 1em;
-  position: fixed;
-  right: 16px;
-  bottom: 18px;
+  margin-top: 20px;
+  padding: 8px 14px;
   cursor: pointer;
-  z-index: 99;
-}
-@media (max-width: 650px) {
-  main {
-    padding: 2px 1px;
-    min-height: 320px;
-    max-width: 100vw;
-  }
-  #recap-ouvrier, #recap-admin {
-    padding: 5px 0;
-  }
-  #recap-ouvrier table, #recap-ouvrier th, #recap-ouvrier td,
-  #recap-admin table, #recap-admin th, #recap-admin td {
-    font-size: 0.84em;
-    padding: 2px 0;
-  }
-  .recap-header, .recap-header-admin {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 5px;
-  }
 }
