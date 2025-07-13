@@ -36,7 +36,7 @@ main {
 #codeInput {
   padding: 9px 16px;
   font-size: 1.1em;
-  border-radius: 20px;
+  border-radius: 3px;
   border: 1px solid #bbb;
   margin-bottom: 8px;
 }
@@ -44,7 +44,7 @@ main {
   background: #d22;
   color: #fff;
   border: none;
-  border-radius: 25px;
+  border-radius: 5px;
   padding: 8px 28px;
   font-size: 1.09em;
   cursor: pointer;
@@ -110,32 +110,58 @@ main {
   font-weight: bold;
   border-top: 2px solid #d22;
 }
-#recap-ouvrier button, #recap-admin button {
+#recap-ouvrier button, #recap-admin button, .btnStatut {
   background: #d22;
   color: #fff;
   border: none;
-  border-radius: 19px;
-  padding: 7px 17px;
+  border-radius: 4px;
+  padding: 6px 13px;
   cursor: pointer;
   font-size: 1em;
+  margin-left: 5px;
+  margin-top: 2px;
+}
+.btnStatut {
+  padding: 1px 6px !important;
+  background: #eee;
+  color: #d22;
+  border: 1px solid #ccc;
+  font-size: 0.95em;
+  border-radius: 3px;
+  margin: 0 0 0 5px;
+  cursor: pointer;
+}
+.btnStatut.active {
+  background: #fff6f6;
+  color: #d22;
+  border: 1.5px solid #d22;
 }
 #btnSave {
   background: #1c8d2f !important;
   color: #fff !important;
   font-weight: bold;
   margin-left: 20px;
+  border-radius: 5px;
 }
 .input-jour, .select-jour {
   font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 3px 2px;
-  background: #f8f8f8;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+  padding: 3px 4px;
+  background: #fff;
   width: 70px;
   margin-bottom: 1px;
+  box-shadow: none;
+  outline: none;
 }
 .select-jour {
-  width: 85px;
+  width: 75px;
+  appearance: none;
+  background: #fff url('data:image/svg+xml;utf8,<svg fill="black" height="13" width="13" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 8px center/13px;
+}
+.input-jour:focus, .select-jour:focus {
+  border: 1.5px solid #d22;
+  background: #fff6f6;
 }
 #saveNotif {
   font-weight: bold;
