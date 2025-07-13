@@ -1,5 +1,3 @@
-console.log("== APP.JS VERSION DU " + new Date().toISOString() + " ==");
-
 // --- Initialisation Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
@@ -13,7 +11,6 @@ const db = firebase.firestore();
 
 // --- UTILITAIRES ---
 function semaineNumero(date) {
-  // Calcule le n° de semaine de l’année (ex : S27)
   const dt = new Date(date.getTime());
   dt.setHours(0,0,0,0);
   dt.setDate(dt.getDate() + 4 - (dt.getDay()||7));
@@ -29,7 +26,6 @@ function getMoisEnCours() {
   return ("0"+(now.getMonth()+1)).slice(-2) + "/" + now.getFullYear();
 }
 function formatHeures(h) {
-  // Affiche 8:30 au lieu de 8.5
   const heures = Math.floor(h);
   const minutes = Math.round((h-heures)*60);
   return `${heures}:${minutes.toString().padStart(2,"0")}`;
@@ -51,7 +47,6 @@ async function tryLogin() {
   const code = document.getElementById('codeInput').value.trim();
   document.getElementById('login-error').textContent = '';
   if (!code) return;
-  // Vérifie code dans /ouvriers
   const ouvSnap = await db.collection("ouvriers").where("code","==",code).get();
   if (ouvSnap.empty) {
     document.getElementById('login-error').textContent = "Code invalide.";
@@ -63,27 +58,27 @@ async function tryLogin() {
   document.getElementById('zone-app').style.display = "block";
   document.getElementById('btnLogout').style.display = "inline-block";
   document.getElementById('welcome').innerHTML = `Bienvenue <b>${currentOuvrier.nom}</b>`;
-  afficherRecapOuvrier(currentUser);
+  afficherRecapOuvrier(currentOuvrier.nom);
 }
 
 // --- RÉCAP OUVRIER ---
-async function afficherRecapOuvrier(codeOuvrier) {
+async function afficherRecapOuvrier(nomOuvrier) {
   document.getElementById('recap-ouvrier').style.display = 'block';
-  // Charge toutes les semaines dispo
-  const semaines = await getSemainesPourOuvrier(codeOuvrier);
+  const semaines = await getSemainesPourOuvrier(nomOuvrier);
   const semaineEnCours = getSemaineEnCours();
   remplirSelectPeriode(semaines, semaineEnCours);
 
-  document.getElementById('periodeSelect').onchange = () => updateRecapOuvrier(codeOuvrier);
-  document.getElementById('btnExport').onclick = () => exportRecapOuvrier(codeOuvrier);
+  document.getElementById('periodeSelect').onchange = () => updateRecapOuvrier(nomOuvrier);
+  document.getElementById('btnExport').onclick = () => exportRecapOuvrier(nomOuvrier);
   document.getElementById('btnPrint').onclick = () => window.print();
 
-  // Affiche direct la semaine en cours
-  updateRecapOuvrier(codeOuvrier);
+  updateRecapOuvrier(nomOuvrier);
 }
 
-async function getSemainesPourOuvrier(codeOuvrier) {
-  const heuresSnap = await db.collection("heures").where("code", "==", codeOuvrier).get();
+async function getSemainesPourOuvrier(nomOuvrier) {
+  const heuresSnap = await db.collection("heures")
+    .where("ouvrier", "==", nomOuvrier)
+    .get();
   const semaines = new Set();
   heuresSnap.forEach(doc => {
     if(doc.data().semaine) semaines.add(doc.data().semaine);
@@ -94,12 +89,10 @@ async function getSemainesPourOuvrier(codeOuvrier) {
 function remplirSelectPeriode(semaines, semaineEnCours) {
   const select = document.getElementById('periodeSelect');
   select.innerHTML = "";
-  // Ajoute aussi "Ce mois" tout en haut
   const moisOpt = document.createElement("option");
   moisOpt.value = "mois";
   moisOpt.text = "Ce mois";
   select.appendChild(moisOpt);
-
   semaines.forEach(s=>{
     const opt = document.createElement("option");
     opt.value = s;
@@ -109,13 +102,12 @@ function remplirSelectPeriode(semaines, semaineEnCours) {
   select.value = semaineEnCours;
 }
 
-async function updateRecapOuvrier(codeOuvrier) {
+async function updateRecapOuvrier(nomOuvrier) {
   const periode = document.getElementById('periodeSelect').value;
   let rows = [];
   if(periode === "mois") {
-    // Charge toutes les semaines du mois en cours
     const mois = getMoisEnCours();
-    const heuresSnap = await db.collection("heures").where("code", "==", codeOuvrier).get();
+    const heuresSnap = await db.collection("heures").where("ouvrier", "==", nomOuvrier).get();
     heuresSnap.forEach(doc => {
       const d = doc.data();
       if (d.timestamp) {
@@ -125,23 +117,36 @@ async function updateRecapOuvrier(codeOuvrier) {
       }
     });
   } else {
-    // Semaine spécifique
     const heuresSnap = await db.collection("heures")
-      .where("code", "==", codeOuvrier)
+      .where("ouvrier", "==", nomOuvrier)
       .where("semaine", "==", periode)
       .get();
     heuresSnap.forEach(doc => rows.push(doc.data()));
   }
 
-  // Prépare le tableau
-  let html = `<table><tr><th>Semaine</th><th>Heures</th><th>Maladie</th><th>Congé</th><th>Formation</th></tr>`;
+  let html = `<table>
+    <tr>
+      <th>Semaine</th>
+      <th>Lundi</th>
+      <th>Mardi</th>
+      <th>Mercredi</th>
+      <th>Jeudi</th>
+      <th>Vendredi</th>
+      <th>Samedi</th>
+      <th>Dimanche</th>
+      <th>Total</th>
+      <th>Maladie</th>
+      <th>Congé</th>
+      <th>Formation</th>
+    </tr>`;
   let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
+
   rows.forEach(row => {
-    // Parcourt les jours et comptes les statuts
     let semaineHeures = 0, semaineMaladie = 0, semaineConge = 0, semaineFormation = 0;
-    ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"].forEach(jour => {
-      const val = row[jour];
-      if(!val) return;
+    let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+    let joursHtml = "";
+    jours.forEach(jour => {
+      const val = row[jour] || "";
       if(val === "Maladie") semaineMaladie++;
       else if(val === "Congé") semaineConge++;
       else if(val === "Formation") semaineFormation++;
@@ -149,25 +154,40 @@ async function updateRecapOuvrier(codeOuvrier) {
         const [h,m] = val.split(":").map(Number);
         semaineHeures += h + m/60;
       }
+      joursHtml += `<td>${val}</td>`;
     });
     totalHeures += semaineHeures;
     maladie += semaineMaladie;
     conge += semaineConge;
     formation += semaineFormation;
-    html += `<tr><td>${row.semaine||""}</td><td>${formatHeures(semaineHeures)}</td><td>${semaineMaladie}</td><td>${semaineConge}</td><td>${semaineFormation}</td></tr>`;
+    html += `<tr>
+      <td>${row.semaine||""}</td>
+      ${joursHtml}
+      <td><b>${formatHeures(semaineHeures)}</b></td>
+      <td>${semaineMaladie}</td>
+      <td>${semaineConge}</td>
+      <td>${semaineFormation}</td>
+    </tr>`;
   });
-  html += `<tr style="font-weight:bold"><td>Total</td><td>${formatHeures(totalHeures)}</td><td>${maladie}</td><td>${conge}</td><td>${formation}</td></tr></table>`;
+
+  html += `<tr class="total-row">
+    <td><b>TOTAL</b></td>
+    <td colspan="7"></td>
+    <td><b>${formatHeures(totalHeures)}</b></td>
+    <td><b>${maladie}</b></td>
+    <td><b>${conge}</b></td>
+    <td><b>${formation}</b></td>
+  </tr>
+  </table>`;
   document.getElementById('tableRecapContainer').innerHTML = html;
 }
 
-// --- Export CSV (simple) ---
-function exportRecapOuvrier(codeOuvrier) {
+// --- Export CSV (amélioré) ---
+function exportRecapOuvrier(nomOuvrier) {
   const html = document.getElementById('tableRecapContainer').innerHTML;
   if (!html) return;
-  // Convertit le tableau HTML en CSV brut
   const rows = Array.from(document.querySelectorAll('#tableRecapContainer table tr'));
   const csv = rows.map(row => Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(";")).join("\n");
-  // Télécharge le fichier
   const blob = new Blob([csv], {type:'text/csv'});
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -176,3 +196,4 @@ function exportRecapOuvrier(codeOuvrier) {
   link.click();
   document.body.removeChild(link);
 }
+
