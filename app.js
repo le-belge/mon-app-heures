@@ -21,9 +21,12 @@ function semaineNumero(date) {
 function getSemaineEnCours() {
   return semaineNumero(new Date());
 }
-function getMoisEnCours() {
-  const now = new Date();
-  return ("0"+(now.getMonth()+1)).slice(-2) + "/" + now.getFullYear();
+function getAllSemaines() {
+  let semaines = [];
+  for (let i = 23; i <= 52; i++) {
+    semaines.push("S" + i);
+  }
+  return semaines;
 }
 function formatHeures(h) {
   const heures = Math.floor(h);
@@ -34,6 +37,9 @@ function formatHeures(h) {
 // --- LOGIN LOGIQUE ---
 let currentUser = null;
 let currentOuvrier = null;
+let semainesGlobales = getAllSemaines();
+let semaineCouranteIndex = 0;
+let docsBySemaine = {};
 
 document.getElementById('btnLogin').onclick = tryLogin;
 document.getElementById('codeInput').addEventListener('keypress', function(e){
@@ -61,68 +67,81 @@ async function tryLogin() {
   afficherRecapOuvrier(currentOuvrier.nom);
 }
 
-// --- RÉCAP OUVRIER ---
+// --- RÉCAP OUVRIER avec navigation semaines et édition ---
 async function afficherRecapOuvrier(nomOuvrier) {
   document.getElementById('recap-ouvrier').style.display = 'block';
-  const semaines = await getSemainesPourOuvrier(nomOuvrier);
-  const semaineEnCours = getSemaineEnCours();
-  remplirSelectPeriode(semaines, semaineEnCours);
 
-  document.getElementById('periodeSelect').onchange = () => updateRecapOuvrier(nomOuvrier);
-  document.getElementById('btnExport').onclick = () => exportRecapOuvrier(nomOuvrier);
-  document.getElementById('btnPrint').onclick = () => window.print();
-
-  updateRecapOuvrier(nomOuvrier);
-}
-
-async function getSemainesPourOuvrier(nomOuvrier) {
+  // Récupérer tous les docs pour l'ouvrier
   const heuresSnap = await db.collection("heures")
     .where("ouvrier", "==", nomOuvrier)
     .get();
-  const semaines = new Set();
+  docsBySemaine = {};
   heuresSnap.forEach(doc => {
-    if(doc.data().semaine) semaines.add(doc.data().semaine);
+    const d = doc.data();
+    if (d.semaine) docsBySemaine[d.semaine] = { ...d, id: doc.id };
   });
-  return Array.from(semaines).sort((a,b)=>a.localeCompare(b));
+
+  // Chercher la semaine en cours ou S23 si on n'est pas dans la plage
+  let semaineEnCours = getSemaineEnCours();
+  let indexEnCours = semainesGlobales.indexOf(semaineEnCours);
+  if (indexEnCours === -1) indexEnCours = 0;
+  semaineCouranteIndex = indexEnCours;
+
+  renderSemaineNavigator();
+  updateRecapOuvrier(currentOuvrier.nom);
 }
 
-function remplirSelectPeriode(semaines, semaineEnCours) {
-  const select = document.getElementById('periodeSelect');
-  select.innerHTML = "";
-  const moisOpt = document.createElement("option");
-  moisOpt.value = "mois";
-  moisOpt.text = "Ce mois";
-  select.appendChild(moisOpt);
-  semaines.forEach(s=>{
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.text = s + (s === semaineEnCours ? " (en cours)" : "");
-    select.appendChild(opt);
-  });
-  select.value = semaineEnCours;
+function renderSemaineNavigator() {
+  // En-tête avec boutons < Sxx >
+  const recapHeader = document.querySelector('.recap-header');
+  recapHeader.innerHTML = `
+    <button id="btnPrevSemaine">&lt;</button>
+    <span id="semaineLabel" style="margin: 0 18px; font-weight:bold;">${semainesGlobales[semaineCouranteIndex]}</span>
+    <button id="btnNextSemaine">&gt;</button>
+    <button id="btnExport" style="margin-left:28px;">Exporter</button>
+    <button id="btnPrint">Imprimer</button>
+    <button id="btnSave" style="margin-left:28px;" class="btn-save">Sauvegarder</button>
+    <span id="saveNotif"></span>
+  `;
+  document.getElementById('btnPrevSemaine').onclick = () => {
+    if (semaineCouranteIndex > 0) {
+      semaineCouranteIndex--;
+      renderSemaineNavigator();
+      updateRecapOuvrier(currentOuvrier.nom);
+    }
+  };
+  document.getElementById('btnNextSemaine').onclick = () => {
+    if (semaineCouranteIndex < semainesGlobales.length - 1) {
+      semaineCouranteIndex++;
+      renderSemaineNavigator();
+      updateRecapOuvrier(currentOuvrier.nom);
+    }
+  };
+  document.getElementById('btnExport').onclick = () => exportRecapOuvrier(currentOuvrier.nom);
+  document.getElementById('btnPrint').onclick = () => window.print();
+  document.getElementById('btnSave').onclick = () => sauvegarderSemaine(currentOuvrier.nom);
 }
 
-async function updateRecapOuvrier(nomOuvrier) {
-  const periode = document.getElementById('periodeSelect').value;
-  let rows = [];
-  if(periode === "mois") {
-    const mois = getMoisEnCours();
-    const heuresSnap = await db.collection("heures").where("ouvrier", "==", nomOuvrier).get();
-    heuresSnap.forEach(doc => {
-      const d = doc.data();
-      if (d.timestamp) {
-        const date = new Date(d.timestamp.seconds*1000);
-        const moisDoc = ("0"+(date.getMonth()+1)).slice(-2) + "/" + date.getFullYear();
-        if (moisDoc === mois) rows.push(d);
-      }
-    });
-  } else {
-    const heuresSnap = await db.collection("heures")
-      .where("ouvrier", "==", nomOuvrier)
-      .where("semaine", "==", periode)
-      .get();
-    heuresSnap.forEach(doc => rows.push(doc.data()));
-  }
+function updateRecapOuvrier(nomOuvrier) {
+  const semaine = semainesGlobales[semaineCouranteIndex];
+  const row = docsBySemaine[semaine];
+  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+  let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
+  let joursHtml = "";
+
+  jours.forEach(jour => {
+    let val = row && row[jour] ? row[jour] : "";
+    joursHtml += `<td>
+      <input type="text" class="input-jour" id="input_${jour}" value="${val}" style="width:90px;text-align:center;">
+    </td>`;
+    if(val === "Maladie") maladie++;
+    else if(val === "Congé") conge++;
+    else if(val === "Formation") formation++;
+    else if(/^\d{1,2}:\d{2}$/.test(val)) {
+      const [h,m] = val.split(":").map(Number);
+      totalHeures += h + m/60;
+    }
+  });
 
   let html = `<table>
     <tr>
@@ -139,47 +158,78 @@ async function updateRecapOuvrier(nomOuvrier) {
       <th>Congé</th>
       <th>Formation</th>
     </tr>`;
-  let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
 
-  rows.forEach(row => {
-    let semaineHeures = 0, semaineMaladie = 0, semaineConge = 0, semaineFormation = 0;
-    let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-    let joursHtml = "";
-    jours.forEach(jour => {
-      const val = row[jour] || "";
-      if(val === "Maladie") semaineMaladie++;
-      else if(val === "Congé") semaineConge++;
-      else if(val === "Formation") semaineFormation++;
-      else if(/^\d{1,2}:\d{2}$/.test(val)) {
-        const [h,m] = val.split(":").map(Number);
-        semaineHeures += h + m/60;
-      }
-      joursHtml += `<td>${val}</td>`;
-    });
-    totalHeures += semaineHeures;
-    maladie += semaineMaladie;
-    conge += semaineConge;
-    formation += semaineFormation;
-    html += `<tr>
-      <td>${row.semaine||""}</td>
-      ${joursHtml}
-      <td><b>${formatHeures(semaineHeures)}</b></td>
-      <td>${semaineMaladie}</td>
-      <td>${semaineConge}</td>
-      <td>${semaineFormation}</td>
-    </tr>`;
-  });
+  html += `<tr>
+    <td>${semaine}</td>
+    ${joursHtml}
+    <td id="totalHeuresCell"><b>${formatHeures(totalHeures)}</b></td>
+    <td id="totalMaladie">${maladie}</td>
+    <td id="totalConge">${conge}</td>
+    <td id="totalFormation">${formation}</td>
+  </tr>`;
 
-  html += `<tr class="total-row">
-    <td><b>TOTAL</b></td>
-    <td colspan="7"></td>
-    <td><b>${formatHeures(totalHeures)}</b></td>
-    <td><b>${maladie}</b></td>
-    <td><b>${conge}</b></td>
-    <td><b>${formation}</b></td>
-  </tr>
-  </table>`;
+  html += `</table>`;
   document.getElementById('tableRecapContainer').innerHTML = html;
+
+  // Met à jour totaux en live si modif d'un input
+  document.querySelectorAll('.input-jour').forEach(input => {
+    input.addEventListener('input', () => majTotauxLigne());
+  });
+}
+
+function majTotauxLigne() {
+  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+  let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
+  jours.forEach(jour => {
+    let val = document.getElementById('input_'+jour).value.trim();
+    if(val === "Maladie") maladie++;
+    else if(val === "Congé") conge++;
+    else if(val === "Formation") formation++;
+    else if(/^\d{1,2}:\d{2}$/.test(val)) {
+      const [h,m] = val.split(":").map(Number);
+      totalHeures += h + m/60;
+    }
+  });
+  document.getElementById('totalHeuresCell').innerHTML = "<b>" + formatHeures(totalHeures) + "</b>";
+  document.getElementById('totalMaladie').innerText = maladie;
+  document.getElementById('totalConge').innerText = conge;
+  document.getElementById('totalFormation').innerText = formation;
+}
+
+// --- Sauvegarde Firestore ---
+async function sauvegarderSemaine(nomOuvrier) {
+  const semaine = semainesGlobales[semaineCouranteIndex];
+  let data = {
+    ouvrier: nomOuvrier,
+    semaine: semaine,
+    timestamp: new Date()
+  };
+  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+  jours.forEach(jour => {
+    let val = document.getElementById('input_'+jour).value.trim();
+    data[jour] = val;
+  });
+  let docId = docsBySemaine[semaine] ? docsBySemaine[semaine].id : undefined;
+  try {
+    if(docId) {
+      await db.collection("heures").doc(docId).set(data, {merge:true});
+    } else {
+      const newDoc = await db.collection("heures").add(data);
+      docsBySemaine[semaine] = { ...data, id: newDoc.id };
+    }
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').innerText = "Enregistré ✔";
+    setTimeout(()=>{
+      document.getElementById('saveNotif').style.display="none";
+      // Refresh pour voir la maj base
+      afficherRecapOuvrier(nomOuvrier);
+    }, 1200);
+  } catch(e) {
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').style.color = "#d22";
+    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
+    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";}, 3500);
+  }
 }
 
 // --- Export CSV (amélioré) ---
@@ -196,4 +246,3 @@ function exportRecapOuvrier(nomOuvrier) {
   link.click();
   document.body.removeChild(link);
 }
-
