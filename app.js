@@ -62,6 +62,7 @@ let currentOuvrier = null;
 let semainesGlobales = getAllSemaines();
 let semaineCouranteIndex = 0;
 let modeAdmin = false;
+let docsBySemaine = {}; // <-- GLOBAL cache
 
 document.getElementById('btnLogin').onclick = tryLogin;
 document.getElementById('codeInput').addEventListener('keypress', function(e){
@@ -100,8 +101,9 @@ async function tryLogin() {
 
 // --- OUVRIER ---
 async function afficherRecapOuvrier(nomOuvrier) {
+  // On charge tous les docs de l'ouvrier une seule fois, à la connexion
   const heuresSnap = await db.collection("heures").where("ouvrier", "==", nomOuvrier).get();
-  let docsBySemaine = {};
+  docsBySemaine = {};
   heuresSnap.forEach(doc => {
     const d = doc.data();
     if (d.semaine) docsBySemaine[d.semaine] = { ...d, id: doc.id };
@@ -111,8 +113,9 @@ async function afficherRecapOuvrier(nomOuvrier) {
   if (indexEnCours === -1) indexEnCours = 0;
   semaineCouranteIndex = indexEnCours;
   renderSemaineSelect();
-  updateRecapOuvrier(nomOuvrier, docsBySemaine);
+  updateRecapOuvrier(nomOuvrier);
 }
+
 function renderSemaineSelect() {
   const recapHeader = document.querySelector('.recap-header');
   recapHeader.innerHTML = `
@@ -128,13 +131,14 @@ function renderSemaineSelect() {
   document.getElementById('selectSemaine').value = semaineCouranteIndex;
   document.getElementById('selectSemaine').onchange = function() {
     semaineCouranteIndex = parseInt(this.value,10);
-    afficherRecapOuvrier(currentOuvrier.nom);
+    updateRecapOuvrier(currentOuvrier.nom);
   };
   document.getElementById('btnExport').onclick = () => exportRecapOuvrier(currentOuvrier.nom);
   document.getElementById('btnPrint').onclick = () => window.print();
   document.getElementById('btnSave').onclick = () => sauvegarderSemaine(currentOuvrier.nom);
 }
-function updateRecapOuvrier(nomOuvrier, docsBySemaine) {
+
+function updateRecapOuvrier(nomOuvrier) {
   const semaine = semainesGlobales[semaineCouranteIndex];
   const joursSem = joursSemaineAvecDates(semaine);
   let row = docsBySemaine[semaine];
@@ -153,7 +157,60 @@ function updateRecapOuvrier(nomOuvrier, docsBySemaine) {
   let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
   joursSem.forEach(j => {
     let val = row && row[j.key] ? row[j.key] : "";
-    html += `<td>${val ? val : ""}</td>`;
+    let isHeure = val && !["Maladie","Congé","Formation"].includes(val);
+    html += `<td>
+      <select class="select-jour" id="select_${j.key}">
+        <option value=""></option>
+        <option value="Maladie" ${val==="Maladie"?"selected":""}>Maladie</option>
+        <option value="Congé" ${val==="Congé"?"selected":""}>Congé</option>
+        <option value="Formation" ${val==="Formation"?"selected":""}>Formation</option>
+        <option value="__autre__" ${isHeure ? "selected":""}>Heure</option>
+      </select>
+      <input type="text" class="input-jour" id="input_${j.key}" value="${isHeure ? val : ""}" style="width:54px;text-align:center;${isHeure ? '' : 'display:none;'}">
+    </td>`;
+    if(val === "Maladie") maladie++;
+    else if(val === "Congé") conge++;
+    else if(val === "Formation") formation++;
+    else if(isHeure && /^\d{1,2}:\d{2}$/.test(val)) {
+      const [h,m] = val.split(":").map(Number);
+      totalHeures += h + m/60;
+    }
+  });
+  html += `<td id="totalHeuresCell">${formatHeures(totalHeures)}</td>
+    <td id="totalMaladie">${maladie}</td>
+    <td id="totalConge">${conge}</td>
+    <td id="totalFormation">${formation}</td>
+  </tr>
+  </table>`;
+  document.getElementById('tableRecapContainer').innerHTML = html;
+
+  // --- Gestion dynamique select/input & totaux live
+  joursSem.forEach(j => {
+    const select = document.getElementById("select_"+j.key);
+    const input = document.getElementById("input_"+j.key);
+    if (select) {
+      select.addEventListener("change", function() {
+        if (this.value === "__autre__") {input.style.display = "";input.value = "";input.focus();}
+        else if (this.value === "") {input.style.display = "none";input.value = "";}
+        else {input.style.display = "none";input.value = this.value;}
+        majTotauxLigne();
+      });
+    }
+    if (input) {input.addEventListener("input", majTotauxLigne);}
+  });
+
+  majTotauxLigne();
+}
+function majTotauxLigne() {
+  const semaine = semainesGlobales[semaineCouranteIndex];
+  const joursSem = joursSemaineAvecDates(semaine);
+  let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
+  joursSem.forEach(j => {
+    let val = "";
+    const select = document.getElementById("select_"+j.key);
+    const input = document.getElementById("input_"+j.key);
+    if (select.value === "__autre__") {val = input.value.trim();}
+    else {val = select.value;}
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
@@ -162,17 +219,43 @@ function updateRecapOuvrier(nomOuvrier, docsBySemaine) {
       totalHeures += h + m/60;
     }
   });
-  html += `<td>${formatHeures(totalHeures)}</td>
-    <td>${maladie}</td>
-    <td>${conge}</td>
-    <td>${formation}</td>
-  </tr>
-  </table>`;
-  document.getElementById('tableRecapContainer').innerHTML = html;
+  document.getElementById('totalHeuresCell').innerText = formatHeures(totalHeures);
+  document.getElementById('totalMaladie').innerText = maladie;
+  document.getElementById('totalConge').innerText = conge;
+  document.getElementById('totalFormation').innerText = formation;
 }
 async function sauvegarderSemaine(nomOuvrier) {
-  // À adapter si tu veux la saisie des heures (inputs), pour l’instant lecture seule.
-  // (Utilise ici ta logique d’édition/sauvegarde si tu veux rendre les cellules éditables)
+  const semaine = semainesGlobales[semaineCouranteIndex];
+  const joursSem = joursSemaineAvecDates(semaine);
+  let data = { ouvrier: nomOuvrier, semaine: semaine, timestamp: new Date() };
+  joursSem.forEach(j => {
+    let val = "";
+    const select = document.getElementById("select_"+j.key);
+    const input = document.getElementById("input_"+j.key);
+    if (select.value === "__autre__") { val = input.value.trim(); }
+    else { val = select.value; }
+    data[j.key] = val;
+  });
+  const heuresSnap = await db.collection("heures")
+    .where("ouvrier", "==", nomOuvrier)
+    .where("semaine", "==", semaine)
+    .get();
+  try {
+    if (!heuresSnap.empty) {
+      await db.collection("heures").doc(heuresSnap.docs[0].id).set(data, {merge:true});
+    } else {
+      await db.collection("heures").add(data);
+    }
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').innerText = "Enregistré ✔";
+    // Recharge tout pour avoir les valeurs à jour dans docsBySemaine (important !)
+    setTimeout(()=>{afficherRecapOuvrier(nomOuvrier); document.getElementById('saveNotif').style.display="none"; }, 1200);
+  } catch(e) {
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').style.color = "#d22";
+    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
+    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";}, 3500);
+  }
 }
 function exportRecapOuvrier(nomOuvrier) {
   const html = document.getElementById('tableRecapContainer').innerHTML;
@@ -209,7 +292,6 @@ async function afficherRecapAdmin() {
   document.getElementById('btnPrintAdmin').onclick = () => window.print();
   updateRecapAdminSimple(ouvriers);
 }
-
 async function updateRecapAdminSimple(ouvriers) {
   const semaine = document.getElementById('selectSemaineAdmin').value;
   const joursSem = joursSemaineAvecDates(semaine);
