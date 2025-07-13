@@ -20,9 +20,10 @@ h1 {
   font-size: 2em;
 }
 main {
-  max-width: 780px;
+  max-width: 1300px;
+  width: 98vw;
   margin: 15px auto;
-  padding: 5px 2px;
+  padding: 10px 8px;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 2px 8px #ddd;
@@ -77,31 +78,29 @@ main {
 #recap-ouvrier table, #recap-admin table {
   width: 100%;
   min-width: 0;
-  table-layout: fixed;
-  font-size: 0.93em;
+  table-layout: auto;
+  font-size: 1em;
   border-collapse: collapse;
-  margin-top: 6px;
+  margin-top: 12px;
   background: #fff;
 }
 #recap-ouvrier th, #recap-ouvrier td,
 #recap-admin th, #recap-admin td {
   border: 1px solid #eee;
-  padding: 2px 0;
+  padding: 8px 4px;
   text-align: center;
-  font-size: 0.92em;
+  font-size: 1em;
+  max-width: 80px;
   word-break: break-word;
   white-space: normal;
-  max-width: 40px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 #recap-ouvrier th, #recap-admin th {
   background: #d22;
   color: #fff;
-  font-size: 0.98em;
+  font-size: 1em;
   letter-spacing: 1px;
   font-weight: 600;
-  padding: 6px 0;
+  padding: 9px 4px;
 }
 #recap-ouvrier tr:nth-child(even), #recap-admin tr:nth-child(even) {
   background: #f8f8f8;
@@ -127,16 +126,16 @@ main {
   margin-left: 20px;
 }
 .input-jour, .select-jour {
-  font-size: 0.95em;
+  font-size: 1em;
   border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 0px 1px;
+  padding: 3px 2px;
   background: #f8f8f8;
-  width: 57px;
+  width: 70px;
   margin-bottom: 1px;
 }
 .select-jour {
-  width: 70px;
+  width: 85px;
 }
 #saveNotif {
   font-weight: bold;
@@ -166,23 +165,23 @@ main {
   cursor: pointer;
   z-index: 99;
 }
-@media (max-width: 650px) {
+@media (max-width: 850px) {
   main {
-    padding: 2px 1px;
-    min-height: 320px;
-    max-width: 100vw;
+    max-width: 99vw;
+    width: 99vw;
+    padding: 3px 1px;
   }
   #recap-ouvrier, #recap-admin {
-    padding: 5px 0;
+    padding: 7px 0;
   }
   #recap-ouvrier table, #recap-admin table {
-    font-size: 0.72em !important;
+    font-size: 0.84em !important;
   }
   #recap-ouvrier th, #recap-ouvrier td,
   #recap-admin th, #recap-admin td {
-    font-size: 0.68em !important;
-    padding: 1px 0 !important;
-    max-width: 26px !important;
+    font-size: 0.82em !important;
+    padding: 2px 0 !important;
+    max-width: 40px !important;
   }
   .recap-header, .recap-header-admin {
     flex-direction: column;
@@ -191,5 +190,25 @@ main {
   }
   #welcome {
     font-size: 0.92em;
+  }
+}
+@media (max-width: 650px) {
+  main {
+    padding: 2px 0px;
+    min-height: 320px;
+    max-width: 100vw;
+    width: 100vw;
+  }
+  #recap-ouvrier table, #recap-admin table {
+    font-size: 0.68em !important;
+  }
+  #recap-ouvrier th, #recap-ouvrier td,
+  #recap-admin th, #recap-admin td {
+    font-size: 0.66em !important;
+    padding: 1px 0 !important;
+    max-width: 24px !important;
+  }
+  #welcome {
+    font-size: 0.82em;
   }
 }
