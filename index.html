@@ -1,55 +1,47 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pointage des heures XLG</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XLG Pointage des Heures</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 <body>
-  <div id="loginPage" class="centered">
-    <img src="logo-xlg.png" alt="XLG" class="logo">
-    <h1>Pointage des heures</h1>
-    <input type="text" id="codeInput" placeholder="Code ouvrier">
-    <button onclick="connecter()">Se connecter</button>
-  </div>
+  <header>
+    <img src="img/xlg-logo.png" alt="Logo XLG" id="logo-xlg">
+    <h1>XLG Pointage des Heures</h1>
+  </header>
 
-  <div id="appPage" style="display:none;">
-    <h1>Pointage des heures Bienvenue <span id="welcome"></span> <button onclick="deconnecter()">Déconnexion</button></h1>
-
-    <div id="workerPage" style="display:none;">
-      <select id="semaineSelect" onchange="chargerHeures()"></select>
-
-      <table>
-        <tr><th>Jour</th><th>Date</th><th>Heures</th></tr>
-        <tr><td>Lundi</td><td id="dateLundi"></td><td><input id="lundi"></td></tr>
-        <tr><td>Mardi</td><td id="dateMardi"></td><td><input id="mardi"></td></tr>
-        <tr><td>Mercredi</td><td id="dateMercredi"></td><td><input id="mercredi"></td></tr>
-        <tr><td>Jeudi</td><td id="dateJeudi"></td><td><input id="jeudi"></td></tr>
-        <tr><td>Vendredi</td><td id="dateVendredi"></td><td><input id="vendredi"></td></tr>
-        <tr><td>Samedi</td><td id="dateSamedi"></td><td><input id="samedi"></td></tr>
-        <tr><td>Dimanche</td><td id="dateDimanche"></td><td><input id="dimanche"></td></tr>
-      </table>
-
-      <div id="recap"></div>
-      <div class="buttons">
-        <button onclick="sauver()">Sauvegarder</button>
-        <button onclick="window.print()">Imprimer</button>
-        <button onclick="exporterCSV()">Exporter CSV</button>
-      </div>
+  <main>
+    <div id="login">
+      <h2>Connexion</h2>
+      <input type="text" id="codeInput" placeholder="Code ouvrier" autocomplete="off" autofocus>
+      <button id="btnLogin">Se connecter</button>
+      <div id="login-error" class="notif"></div>
     </div>
 
-    <div id="adminPage" style="display:none;">
-      <select id="semaineAdminSelect" onchange="chargerRecapAdmin()"></select>
-      <div id="adminContent"></div>
-      <div class="buttons">
-        <button onclick="window.print()">Imprimer</button>
-        <button onclick="exporterCSV()">Exporter CSV</button>
-      </div>
-    </div>
-  </div>
+    <div id="zone-app" style="display:none;">
+      <div id="welcome"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+      <div id="recap-ouvrier" style="display:none;">
+        <h2 class="titre-rouge">Mon récapitulatif</h2>
+        <label for="periodeSelect">Sélection :</label>
+        <select id="periodeSelect"></select>
+        <button id="btnExport">Exporter</button>
+        <button id="btnPrint">Imprimer</button>
+        <div id="tableRecapContainer"></div>
+      </div>
+
+      <button id="btnLogout" style="display:none;">Déconnexion</button>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 XLG - Gestion du temps</p>
+  </footer>
   <script src="app.js"></script>
 </body>
 </html>
