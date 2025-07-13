@@ -67,7 +67,7 @@ async function tryLogin() {
   afficherRecapOuvrier(currentOuvrier.nom);
 }
 
-// --- RÉCAP OUVRIER avec navigation semaines et édition ---
+// --- RÉCAP OUVRIER avec navigation semaines et select ---
 async function afficherRecapOuvrier(nomOuvrier) {
   document.getElementById('recap-ouvrier').style.display = 'block';
 
@@ -131,13 +131,21 @@ function updateRecapOuvrier(nomOuvrier) {
 
   jours.forEach(jour => {
     let val = row && row[jour] ? row[jour] : "";
+    let isHeure = val && !["Maladie","Congé","Formation"].includes(val);
     joursHtml += `<td>
-      <input type="text" class="input-jour" id="input_${jour}" value="${val}" style="width:90px;text-align:center;">
+      <select class="select-jour" id="select_${jour}" style="width:105px;">
+        <option value=""></option>
+        <option value="Maladie" ${val==="Maladie"?"selected":""}>Maladie</option>
+        <option value="Congé" ${val==="Congé"?"selected":""}>Congé</option>
+        <option value="Formation" ${val==="Formation"?"selected":""}>Formation</option>
+        <option value="__autre__" ${isHeure ? "selected":""}>Heure personnalisée</option>
+      </select>
+      <input type="text" class="input-jour" id="input_${jour}" value="${isHeure ? val : ""}" style="width:60px;text-align:center;${isHeure ? '' : 'display:none;'}">
     </td>`;
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
-    else if(/^\d{1,2}:\d{2}$/.test(val)) {
+    else if(isHeure && /^\d{1,2}:\d{2}$/.test(val)) {
       const [h,m] = val.split(":").map(Number);
       totalHeures += h + m/60;
     }
@@ -171,17 +179,47 @@ function updateRecapOuvrier(nomOuvrier) {
   html += `</table>`;
   document.getElementById('tableRecapContainer').innerHTML = html;
 
-  // Met à jour totaux en live si modif d'un input
-  document.querySelectorAll('.input-jour').forEach(input => {
-    input.addEventListener('input', () => majTotauxLigne());
+  // Gestion dynamique select/input + totaux en live
+  jours.forEach(jour => {
+    const select = document.getElementById("select_"+jour);
+    const input = document.getElementById("input_"+jour);
+
+    if (select) {
+      select.addEventListener("change", function() {
+        if (this.value === "__autre__") {
+          input.style.display = "";
+          input.value = "";
+          input.focus();
+        } else if (this.value === "") {
+          input.style.display = "none";
+          input.value = "";
+        } else {
+          input.style.display = "none";
+          input.value = this.value;
+        }
+        majTotauxLigne();
+      });
+    }
+    if (input) {
+      input.addEventListener("input", majTotauxLigne);
+    }
   });
+
+  majTotauxLigne();
 }
 
 function majTotauxLigne() {
   let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
   let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
   jours.forEach(jour => {
-    let val = document.getElementById('input_'+jour).value.trim();
+    let val = "";
+    const select = document.getElementById("select_"+jour);
+    const input = document.getElementById("input_"+jour);
+    if (select.value === "__autre__") {
+      val = input.value.trim();
+    } else {
+      val = select.value;
+    }
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
@@ -204,45 +242,4 @@ async function sauvegarderSemaine(nomOuvrier) {
     semaine: semaine,
     timestamp: new Date()
   };
-  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-  jours.forEach(jour => {
-    let val = document.getElementById('input_'+jour).value.trim();
-    data[jour] = val;
-  });
-  let docId = docsBySemaine[semaine] ? docsBySemaine[semaine].id : undefined;
-  try {
-    if(docId) {
-      await db.collection("heures").doc(docId).set(data, {merge:true});
-    } else {
-      const newDoc = await db.collection("heures").add(data);
-      docsBySemaine[semaine] = { ...data, id: newDoc.id };
-    }
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').innerText = "Enregistré ✔";
-    setTimeout(()=>{
-      document.getElementById('saveNotif').style.display="none";
-      // Refresh pour voir la maj base
-      afficherRecapOuvrier(nomOuvrier);
-    }, 1200);
-  } catch(e) {
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').style.color = "#d22";
-    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
-    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";}, 3500);
-  }
-}
-
-// --- Export CSV (amélioré) ---
-function exportRecapOuvrier(nomOuvrier) {
-  const html = document.getElementById('tableRecapContainer').innerHTML;
-  if (!html) return;
-  const rows = Array.from(document.querySelectorAll('#tableRecapContainer table tr'));
-  const csv = rows.map(row => Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(";")).join("\n");
-  const blob = new Blob([csv], {type:'text/csv'});
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'recap-heures.csv';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+  let jours = ["lundi","mardi","mercredi","jeudi","vend
