@@ -1,3 +1,5 @@
+console.log("== APP.JS VERSION DU " + new Date().toISOString() + " ==");
+
 // --- Initialisation Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyBSnnmaodnDOqIzRZdTsZeOJlGjmmo0_dk",
