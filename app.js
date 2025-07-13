@@ -9,14 +9,13 @@ if (!firebase.apps.length) {
 }
 const db = firebase.firestore();
 
-// --- UTILITAIRES ---
+// --- Utilitaires ---
 function semaineNumero(date) {
   const dt = new Date(date.getTime());
   dt.setHours(0,0,0,0);
   dt.setDate(dt.getDate() + 4 - (dt.getDay()||7));
   const debutAnnee = new Date(dt.getFullYear(),0,1);
-  const numSemaine = Math.ceil((((dt - debutAnnee) / 86400000) + 1) / 7);
-  return "S" + numSemaine;
+  return "S" + Math.ceil((((dt - debutAnnee) / 86400000) + 1) / 7);
 }
 function getSemaineEnCours() {
   return semaineNumero(new Date());
@@ -56,17 +55,25 @@ function joursSemaineAvecDates(semaineStr) {
     return {...j, date: `${dd}/${mm}`};
   });
 }
-
-function listeMoisDispo() {
-  const now = new Date();
-  const months = [];
-  for(let m = 1; m <= 12; m++) {
-    let mm = m.toString().padStart(2, '0');
-    months.push(`${mm}/${now.getFullYear()}`);
+function getJoursDuMois(moisStr) {
+  const [mm, yyyy] = moisStr.split("/");
+  const date = new Date(parseInt(yyyy), parseInt(mm) - 1, 1);
+  const jours = [];
+  while(date.getMonth() === parseInt(mm) - 1) {
+    jours.push({
+      key: jourKeyFromDate(date),
+      date: ("0"+date.getDate()).slice(-2)
+    });
+    date.setDate(date.getDate()+1);
   }
-  return months;
+  return jours;
+}
+function jourKeyFromDate(date) {
+  const map = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+  return map[date.getDay()];
 }
 
+// --- Variables globales ---
 let currentUser = null;
 let currentOuvrier = null;
 let semainesGlobales = getAllSemaines();
@@ -75,6 +82,7 @@ let modeAdmin = false;
 let docsBySemaine = {};
 let docsByMois = {};
 
+// --- Login ---
 document.getElementById('btnLogin').onclick = tryLogin;
 document.getElementById('codeInput').addEventListener('keypress', function(e){
   if(e.key === "Enter") tryLogin();
@@ -112,7 +120,7 @@ async function tryLogin() {
   }
 }
 
-// Chargement des données
+// --- Chargement données ---
 async function chargerDonneesOuvrier(nom) {
   const heuresSnap = await db.collection("heures").where("ouvrier", "==", nom).get();
   docsBySemaine = {};
@@ -148,10 +156,7 @@ async function chargerDonneesAdmin() {
   });
 }
 
-// -------------------
-// AFFICHAGE OUVRIER
-// -------------------
-
+// --- Affichage Ouvrier ---
 function renderSemaineSelect() {
   const recapHeader = document.querySelector('.recap-header');
   recapHeader.innerHTML = `
@@ -172,7 +177,6 @@ function renderSemaineSelect() {
   const selectSemaine = document.getElementById('selectSemaine');
   const selectMois = document.getElementById('selectMois');
 
-  // Remplissage initial semaines
   semainesGlobales.forEach((s,i) => {
     const option = document.createElement('option');
     option.value = i;
@@ -181,7 +185,6 @@ function renderSemaineSelect() {
   });
   selectSemaine.value = semaineCouranteIndex;
 
-  // Remplissage mois dispo
   const moisList = Object.keys(docsByMois).sort();
   moisList.forEach(mois => {
     const option = document.createElement('option');
@@ -189,7 +192,7 @@ function renderSemaineSelect() {
     option.textContent = mois;
     selectMois.appendChild(option);
   });
-  if (moisList.length > 0) selectMois.value = moisList[0];
+  if(moisList.length > 0) selectMois.value = moisList[0];
 
   function switchPeriode() {
     if (selectType.value === "semaine") {
@@ -312,11 +315,8 @@ function majTotauxLigne() {
     let val = "";
     const select = document.getElementById("select_"+j.key);
     const input = document.getElementById("input_"+j.key);
-    if(select.value !== "Maladie" && select.value !== "Congé" && select.value !== "Formation" && select.style.display === "none") {
-      val = input.value.trim();
-    } else {
-      val = select.value;
-    }
+    if(select.style.display === "none") val = input.value.trim();
+    else val = select.value;
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
@@ -364,10 +364,7 @@ async function sauvegarderSemaine(nomOuvrier) {
   }
 }
 
-// -----------------
-// Récap mois ouvrier
-// -----------------
-
+// --- Affichage récap mensuel ouvrier ---
 function updateRecapOuvrierMois(nomOuvrier) {
   const selectMois = document.getElementById('selectMois');
   const mois = selectMois.value;
@@ -386,12 +383,11 @@ function updateRecapOuvrierMois(nomOuvrier) {
 
   joursMois.forEach(jour => {
     let val = "";
-    // Cherche la donnée dans rows (collection du mois)
     for(let r of rows) {
       const d = r[jour.key];
       if(d) { val = d; break; }
     }
-    html += `<td>${val}</td>`;
+    html += `<td title="${val}">${val}</td>`;
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
@@ -405,31 +401,7 @@ function updateRecapOuvrierMois(nomOuvrier) {
   document.getElementById('tableRecapContainer').innerHTML = html;
 }
 
-function getJoursDuMois(moisStr) {
-  // Format moisStr = "07/2025"
-  const [mm, yyyy] = moisStr.split("/");
-  const date = new Date(parseInt(yyyy), parseInt(mm)-1, 1);
-  const jours = [];
-  while(date.getMonth() === parseInt(mm)-1) {
-    jours.push({
-      key: jourKeyFromDate(date),
-      date: ("0"+date.getDate()).slice(-2)
-    });
-    date.setDate(date.getDate()+1);
-  }
-  return jours;
-}
-
-function jourKeyFromDate(date) {
-  // Retourne la clé "lundi", "mardi" ... selon le jour de la semaine
-  const map = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
-  return map[date.getDay()];
-}
-
-// --------------
-// ADMIN
-// --------------
-
+// --- Affichage Admin ---
 async function afficherRecapAdmin() {
   const ouvSnap = await db.collection("ouvriers").get();
   let ouvriers = ouvSnap.docs.map(doc => doc.data().nom);
@@ -518,6 +490,7 @@ function updateRecapAdminSemaine(ouvriers) {
     joursSem.forEach(j => {
       let val = row[j.key] || "";
       let isHeure = !val || /^\d{1,2}:\d{2}$/.test(val);
+
       html += `<td>
         <select class="select-jour-admin" data-jour="${j.key}" data-ouvrier="${nom}" style="display:none;">
           <option value=""></option>
@@ -548,7 +521,6 @@ function updateRecapAdminSemaine(ouvriers) {
   html += `</table>`;
   document.getElementById('tableAdminContainer').innerHTML = html;
 
-  // Event handlers admin edition
   document.querySelectorAll('.btnStatut').forEach(btn => {
     btn.onclick = function(e) {
       e.preventDefault();
@@ -557,7 +529,7 @@ function updateRecapAdminSemaine(ouvriers) {
       const select = document.querySelector(`.select-jour-admin[data-ouvrier="${ouvrier}"][data-jour="${jour}"]`);
       const input = document.querySelector(`.input-jour-admin[data-ouvrier="${ouvrier}"][data-jour="${jour}"]`);
 
-      if (select.style.display === "none") {
+      if(select.style.display === "none") {
         select.style.display = "";
         input.style.display = "none";
         btn.textContent = "⌨";
@@ -595,85 +567,6 @@ function updateRecapAdminSemaine(ouvriers) {
 
   updateTotalsAdmin();
 }
-
-function updateTotalsAdmin(ouvrier = null) {
-  let rows;
-  if(ouvrier) {
-    rows = [document.querySelector(`tr[data-ouvrier="${ouvrier}"]`)];
-  } else {
-    rows = Array.from(document.querySelectorAll('#tableAdminContainer table tr[data-ouvrier]'));
-  }
-  rows.forEach(row => {
-    if(!row) return;
-    const nom = row.getAttribute('data-ouvrier');
-    const selectEls = Array.from(document.querySelectorAll(`.select-jour-admin[data-ouvrier="${nom}"]`));
-    const inputEls = Array.from(document.querySelectorAll(`.input-jour-admin[data-ouvrier="${nom}"]`));
-
-    let maladie = 0, conge = 0, formation = 0, totalHeures = 0;
-
-    for(let i = 0; i < selectEls.length; i++) {
-      const sel = selectEls[i];
-      const inp = inputEls[i];
-      let val = sel.style.display === "none" ? inp.value.trim() : sel.value;
-
-      if(val === "Maladie") maladie++;
-      else if(val === "Congé") conge++;
-      else if(val === "Formation") formation++;
-      else if(/^\d{1,2}:\d{2}$/.test(val)) {
-        const [h,m] = val.split(":").map(Number);
-        totalHeures += h + m / 60;
-      }
-    }
-    row.querySelector('.total-heures').textContent = formatHeures(totalHeures);
-    row.querySelector('.total-maladie').textContent = maladie;
-    row.querySelector('.total-conge').textContent = conge;
-    row.querySelector('.total-formation').textContent = formation;
-  });
-}
-
-async function sauvegarderSemaineAdmin(ouvriers) {
-  const semaine = document.getElementById('selectSemaineAdmin').value;
-
-  for(const nom of ouvriers) {
-    let row = document.querySelector(`tr[data-ouvrier="${nom}"]`);
-    if(!row) continue;
-
-    const data = { ouvrier: nom, semaine, timestamp: new Date() };
-
-    const selectEls = Array.from(document.querySelectorAll(`.select-jour-admin[data-ouvrier="${nom}"]`));
-    const inputEls = Array.from(document.querySelectorAll(`.input-jour-admin[data-ouvrier="${nom}"]`));
-
-    for(let i = 0; i < selectEls.length; i++) {
-      const sel = selectEls[i];
-      const inp = inputEls[i];
-      const key = sel.getAttribute('data-jour');
-      data[key] = sel.style.display === "none" ? inp.value.trim() : sel.value;
-    }
-
-    const heuresSnap = await db.collection("heures")
-      .where("ouvrier", "==", nom)
-      .where("semaine", "==", semaine)
-      .get();
-
-    try {
-      if(!heuresSnap.empty) {
-        await db.collection("heures").doc(heuresSnap.docs[0].id).set(data, {merge:true});
-      } else {
-        await db.collection("heures").add(data);
-      }
-    } catch(e) {
-      console.error(`Erreur sauvegarde semaine pour ${nom}`, e);
-    }
-  }
-
-  alert("Toutes les données ont été sauvegardées.");
-  await chargerDonneesAdmin();
-  afficherRecapAdmin();
-}
-
-// -------------------
-// Récap mois admin
-// -------------------
 
 function updateRecapAdminMois(ouvriers) {
   const selectMois = document.getElementById('selectMoisAdmin');
@@ -728,7 +621,6 @@ function updateRecapAdminMois(ouvriers) {
   html += `</table>`;
   document.getElementById('tableAdminContainer').innerHTML = html;
 
-  // Ré-attacher événements édition
   document.querySelectorAll('.btnStatut').forEach(btn => {
     btn.onclick = function(e) {
       e.preventDefault();
@@ -776,6 +668,36 @@ function updateRecapAdminMois(ouvriers) {
   updateTotalsAdmin();
 }
 
+async function sauvegarderMois(nomOuvrier) {
+  const mois = document.getElementById('selectMois').value;
+  const joursMois = getJoursDuMois(mois);
+  let data = { ouvrier: nomOuvrier, timestamp: new Date() };
+  joursMois.forEach(j => {
+    const select = document.querySelector(`#recap-ouvrier .select-jour[data-jour="${j.key}"]`);
+    const input = document.querySelector(`#recap-ouvrier .input-jour[data-jour="${j.key}"]`);
+    let val = "";
+    if(select && select.style.display === "none") val = input ? input.value.trim() : "";
+    else val = select ? select.value : "";
+    data[j.key] = val;
+  });
+  try {
+    await db.collection("heures").add(data);
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').innerText = "Enregistré ✔";
+    setTimeout(() => {
+      afficherRecapOuvrier(nomOuvrier);
+      document.getElementById('saveNotif').style.display = "none";
+    }, 1200);
+  } catch (e) {
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').style.color = "#d22";
+    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
+    setTimeout(() => {
+      document.getElementById('saveNotif').style.display = "none";
+    }, 3500);
+  }
+}
+
 async function sauvegarderMoisAdmin(ouvriers) {
   const mois = document.getElementById('selectMoisAdmin').value;
   const joursMois = getJoursDuMois(mois);
@@ -793,7 +715,6 @@ async function sauvegarderMoisAdmin(ouvriers) {
       data[key] = sel.style.display === "none" ? inp.value.trim() : sel.value;
     }
 
-    // on sauvegarde ici sans semaine, mais on pourrait ajouter un champ mois ou gérer différemment
     try {
       await db.collection("heures").add(data);
     } catch(e) {
@@ -806,26 +727,7 @@ async function sauvegarderMoisAdmin(ouvriers) {
   afficherRecapAdmin();
 }
 
-// Fonctions communes
-function getJoursDuMois(moisStr) {
-  const [mm, yyyy] = moisStr.split("/");
-  const date = new Date(parseInt(yyyy), parseInt(mm) - 1, 1);
-  const jours = [];
-  while(date.getMonth() === parseInt(mm) -1) {
-    jours.push({
-      key: jourKeyFromDate(date),
-      date: ("0"+date.getDate()).slice(-2)
-    });
-    date.setDate(date.getDate()+1);
-  }
-  return jours;
-}
-function jourKeyFromDate(date) {
-  const map = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
-  return map[date.getDay()];
-}
-
-// Exports CSV (simples)
+// Export CSV
 function exportRecapOuvrier(nomOuvrier) {
   const html = document.getElementById('tableRecapContainer').innerHTML;
   if (!html) return;
@@ -839,9 +741,11 @@ function exportRecapOuvrier(nomOuvrier) {
   link.click();
   document.body.removeChild(link);
 }
+
 function exportRecapOuvrierMois(nomOuvrier) {
   exportRecapOuvrier(nomOuvrier);
 }
+
 function exportRecapAdminSemaine() {
   const html = document.getElementById('tableAdminContainer').innerHTML;
   if (!html) return;
@@ -855,6 +759,7 @@ function exportRecapAdminSemaine() {
   link.click();
   document.body.removeChild(link);
 }
+
 function exportRecapAdminMois() {
   exportRecapAdminSemaine();
 }
