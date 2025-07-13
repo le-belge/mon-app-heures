@@ -242,4 +242,51 @@ async function sauvegarderSemaine(nomOuvrier) {
     semaine: semaine,
     timestamp: new Date()
   };
-  let jours = ["lundi","mardi","mercredi","jeudi","vend
+  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+  jours.forEach(jour => {
+    let val = "";
+    const select = document.getElementById("select_"+jour);
+    const input = document.getElementById("input_"+jour);
+    if (select.value === "__autre__") {
+      val = input.value.trim();
+    } else {
+      val = select.value;
+    }
+    data[jour] = val;
+  });
+  let docId = docsBySemaine[semaine] ? docsBySemaine[semaine].id : undefined;
+  try {
+    if(docId) {
+      await db.collection("heures").doc(docId).set(data, {merge:true});
+    } else {
+      const newDoc = await db.collection("heures").add(data);
+      docsBySemaine[semaine] = { ...data, id: newDoc.id };
+    }
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').innerText = "Enregistré ✔";
+    setTimeout(()=>{
+      document.getElementById('saveNotif').style.display="none";
+      afficherRecapOuvrier(nomOuvrier);
+    }, 1200);
+  } catch(e) {
+    document.getElementById('saveNotif').style.display = "";
+    document.getElementById('saveNotif').style.color = "#d22";
+    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
+    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";}, 3500);
+  }
+}
+
+// --- Export CSV (amélioré) ---
+function exportRecapOuvrier(nomOuvrier) {
+  const html = document.getElementById('tableRecapContainer').innerHTML;
+  if (!html) return;
+  const rows = Array.from(document.querySelectorAll('#tableRecapContainer table tr'));
+  const csv = rows.map(row => Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(";")).join("\n");
+  const blob = new Blob([csv], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'recap-heures.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
