@@ -27,7 +27,6 @@ main {
   box-shadow: 0 3px 12px #ddd;
   min-height: 500px;
 }
-
 #login {
   text-align: center;
   margin-top: 70px;
@@ -54,7 +53,6 @@ main {
   margin-top: 12px;
   font-weight: bold;
 }
-
 #recap-ouvrier {
   margin: 36px 0 0 0;
   background: #fff;
@@ -65,11 +63,17 @@ main {
   margin-left: auto;
   margin-right: auto;
 }
+.recap-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 #recap-ouvrier table {
   width: 100%;
   border-collapse: collapse;
   font-size: 1.1em;
-  margin-top: 16px;
+  margin-top: 10px;
 }
 #recap-ouvrier th, #recap-ouvrier td {
   border: 1px solid #eee;
@@ -79,9 +83,17 @@ main {
 #recap-ouvrier th {
   background: #d22;
   color: #fff;
+  font-size: 1.08em;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
 #recap-ouvrier tr:nth-child(even) {
   background: #f8f8f8;
+}
+#recap-ouvrier tr.total-row {
+  background: #ffe5e5;
+  font-weight: bold;
+  border-top: 2px solid #d22;
 }
 #recap-ouvrier button {
   background: #d22;
@@ -89,7 +101,6 @@ main {
   border: none;
   border-radius: 22px;
   padding: 8px 18px;
-  margin-left: 10px;
   cursor: pointer;
   font-size: 1em;
 }
@@ -126,5 +137,10 @@ main {
   #recap-ouvrier table, #recap-ouvrier th, #recap-ouvrier td {
     font-size: 0.93em;
     padding: 5px 5px;
+  }
+  .recap-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 }
