@@ -33,6 +33,29 @@ function formatHeures(h) {
   const minutes = Math.round((h-heures)*60);
   return `${heures}:${minutes.toString().padStart(2,"0")}`;
 }
+function joursSemaineAvecDates(semaineStr) {
+  let num = Number(semaineStr.replace("S", ""));
+  if (!num || num < 1) num = semaineNumero(new Date());
+  let year = (new Date()).getFullYear();
+  let d = new Date(year, 0, 1 + (num-1)*7);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  let jours = [
+    {label: "Lu", key: "lundi"},
+    {label: "Ma", key: "mardi"},
+    {label: "Me", key: "mercredi"},
+    {label: "Je", key: "jeudi"},
+    {label: "Ve", key: "vendredi"},
+    {label: "Sa", key: "samedi"},
+    {label: "Di", key: "dimanche"}
+  ];
+  return jours.map((j,i)=>{
+    let dateObj = new Date(d.getTime());
+    dateObj.setDate(d.getDate()+i);
+    let dd = ("0"+dateObj.getDate()).slice(-2);
+    let mm = ("0"+(dateObj.getMonth()+1)).slice(-2);
+    return {...j, date: `${dd}/${mm}`};
+  });
+}
 
 let currentUser = null;
 let currentOuvrier = null;
@@ -113,80 +136,24 @@ function renderSemaineSelect() {
 }
 function updateRecapOuvrier(nomOuvrier, docsBySemaine) {
   const semaine = semainesGlobales[semaineCouranteIndex];
-  const row = docsBySemaine[semaine];
-  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-  let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
-  let joursHtml = "";
-  jours.forEach(jour => {
-    let val = row && row[jour] ? row[jour] : "";
-    let isHeure = val && !["Maladie","Congé","Formation"].includes(val);
-    joursHtml += `<td>
-      <select class="select-jour" id="select_${jour}">
-        <option value=""></option>
-        <option value="Maladie" ${val==="Maladie"?"selected":""}>Maladie</option>
-        <option value="Congé" ${val==="Congé"?"selected":""}>Congé</option>
-        <option value="Formation" ${val==="Formation"?"selected":""}>Formation</option>
-        <option value="__autre__" ${isHeure ? "selected":""}>Heure personnalisée</option>
-      </select>
-      <input type="text" class="input-jour" id="input_${jour}" value="${isHeure ? val : ""}" style="width:54px;text-align:center;${isHeure ? '' : 'display:none;'}">
-    </td>`;
-    if(val === "Maladie") maladie++;
-    else if(val === "Congé") conge++;
-    else if(val === "Formation") formation++;
-    else if(isHeure && /^\d{1,2}:\d{2}$/.test(val)) {
-      const [h,m] = val.split(":").map(Number);
-      totalHeures += h + m/60;
-    }
-  });
+  const joursSem = joursSemaineAvecDates(semaine);
+  let row = docsBySemaine[semaine];
+
   let html = `<table>
     <tr>
       <th>Semaine</th>
-      <th>Lundi</th>
-      <th>Mardi</th>
-      <th>Mercredi</th>
-      <th>Jeudi</th>
-      <th>Vendredi</th>
-      <th>Samedi</th>
-      <th>Dimanche</th>
+      ${joursSem.map(j=>`<th>${j.label}<br><span style="font-size:0.87em;color:#555">${j.date}</span></th>`).join("")}
       <th>Total</th>
-      <th>Maladie</th>
-      <th>Congé</th>
-      <th>Formation</th>
+      <th>Mal</th>
+      <th>Cng</th>
+      <th>F</th>
     </tr>
     <tr>
-      <td>${semaine}</td>
-      ${joursHtml}
-      <td id="totalHeuresCell"><b>${formatHeures(totalHeures)}</b></td>
-      <td id="totalMaladie">${maladie}</td>
-      <td id="totalConge">${conge}</td>
-      <td id="totalFormation">${formation}</td>
-    </tr>
-    </table>`;
-  document.getElementById('tableRecapContainer').innerHTML = html;
-  jours.forEach(jour => {
-    const select = document.getElementById("select_"+jour);
-    const input = document.getElementById("input_"+jour);
-    if (select) {
-      select.addEventListener("change", function() {
-        if (this.value === "__autre__") {input.style.display = "";input.value = "";input.focus();}
-        else if (this.value === "") {input.style.display = "none";input.value = "";}
-        else {input.style.display = "none";input.value = this.value;}
-        majTotauxLigne();
-      });
-    }
-    if (input) {input.addEventListener("input", majTotauxLigne);}
-  });
-  majTotauxLigne();
-}
-function majTotauxLigne() {
-  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+      <td>${semaine}</td>`;
   let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
-  jours.forEach(jour => {
-    let val = "";
-    const select = document.getElementById("select_"+jour);
-    const input = document.getElementById("input_"+jour);
-    if (select.value === "__autre__") {val = input.value.trim();}
-    else {val = select.value;}
+  joursSem.forEach(j => {
+    let val = row && row[j.key] ? row[j.key] : "";
+    html += `<td>${val ? val : ""}</td>`;
     if(val === "Maladie") maladie++;
     else if(val === "Congé") conge++;
     else if(val === "Formation") formation++;
@@ -195,42 +162,17 @@ function majTotauxLigne() {
       totalHeures += h + m/60;
     }
   });
-  document.getElementById('totalHeuresCell').innerHTML = "<b>" + formatHeures(totalHeures) + "</b>";
-  document.getElementById('totalMaladie').innerText = maladie;
-  document.getElementById('totalConge').innerText = conge;
-  document.getElementById('totalFormation').innerText = formation;
+  html += `<td>${formatHeures(totalHeures)}</td>
+    <td>${maladie}</td>
+    <td>${conge}</td>
+    <td>${formation}</td>
+  </tr>
+  </table>`;
+  document.getElementById('tableRecapContainer').innerHTML = html;
 }
 async function sauvegarderSemaine(nomOuvrier) {
-  const semaine = semainesGlobales[semaineCouranteIndex];
-  let data = { ouvrier: nomOuvrier, semaine: semaine, timestamp: new Date() };
-  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-  jours.forEach(jour => {
-    let val = "";
-    const select = document.getElementById("select_"+jour);
-    const input = document.getElementById("input_"+jour);
-    if (select.value === "__autre__") { val = input.value.trim(); }
-    else { val = select.value; }
-    data[jour] = val;
-  });
-  const heuresSnap = await db.collection("heures")
-    .where("ouvrier", "==", nomOuvrier)
-    .where("semaine", "==", semaine)
-    .get();
-  try {
-    if (!heuresSnap.empty) {
-      await db.collection("heures").doc(heuresSnap.docs[0].id).set(data, {merge:true});
-    } else {
-      await db.collection("heures").add(data);
-    }
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').innerText = "Enregistré ✔";
-    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";afficherRecapOuvrier(nomOuvrier);}, 1200);
-  } catch(e) {
-    document.getElementById('saveNotif').style.display = "";
-    document.getElementById('saveNotif').style.color = "#d22";
-    document.getElementById('saveNotif').innerText = "Erreur lors de l'enregistrement";
-    setTimeout(()=>{document.getElementById('saveNotif').style.display="none";}, 3500);
-  }
+  // À adapter si tu veux la saisie des heures (inputs), pour l’instant lecture seule.
+  // (Utilise ici ta logique d’édition/sauvegarde si tu veux rendre les cellules éditables)
 }
 function exportRecapOuvrier(nomOuvrier) {
   const html = document.getElementById('tableRecapContainer').innerHTML;
@@ -245,119 +187,64 @@ function exportRecapOuvrier(nomOuvrier) {
   link.click();
   document.body.removeChild(link);
 }
+
 // --- ADMIN ---
 async function afficherRecapAdmin() {
   const ouvSnap = await db.collection("ouvriers").get();
   let ouvriers = ouvSnap.docs.map(doc => doc.data().nom);
   ouvriers = ouvriers.filter(o=>o).sort((a,b)=>a.localeCompare(b));
-
   const recapHeader = document.querySelector('.recap-header-admin');
   recapHeader.innerHTML = `
-    <label for="selectPeriode">Période :</label>
-    <select id="selectPeriode">
-      <option value="semaine">Semaine</option>
-      <option value="mois">Mois</option>
+    <label for="selectSemaineAdmin">Semaine :</label>
+    <select id="selectSemaineAdmin">
+      ${semainesGlobales.map((s)=>`<option value="${s}">${s}</option>`).join("")}
     </select>
-    <select id="selectSemaineAdmin"></select>
     <button id="btnExportAdmin">Exporter</button>
     <button id="btnPrintAdmin">Imprimer</button>
   `;
-
-  // Remplissage dynamique des options semaine/mois
-  const selectPeriode = document.getElementById('selectPeriode');
-  const selectSemaineAdmin = document.getElementById('selectSemaineAdmin');
-  async function updateSelectSemaine() {
-    selectSemaineAdmin.innerHTML = "";
-    if (selectPeriode.value === "semaine") {
-      semainesGlobales.forEach((s,i)=>{
-        selectSemaineAdmin.innerHTML += `<option value="${s}">${s}</option>`;
-      });
-      selectSemaineAdmin.style.display = "";
-    } else {
-      // liste des mois à partir des docs heures (prend tous les mois existants)
-      const moisList = await listerMoisDispo();
-      moisList.forEach(mois=>{
-        selectSemaineAdmin.innerHTML += `<option value="${mois}">${mois}</option>`;
-      });
-      selectSemaineAdmin.style.display = "";
-    }
-    updateRecapAdmin(ouvriers); // refresh tableau quand select change
-  }
-  selectPeriode.onchange = updateSelectSemaine;
-  await updateSelectSemaine();
-
-  document.getElementById('btnExportAdmin').onclick = () => exportRecapAdmin();
+  document.getElementById('selectSemaineAdmin').onchange = function() {
+    updateRecapAdminSimple(ouvriers);
+  };
+  document.getElementById('btnExportAdmin').onclick = () => exportRecapAdminSimple();
   document.getElementById('btnPrintAdmin').onclick = () => window.print();
-  selectSemaineAdmin.onchange = ()=> updateRecapAdmin(ouvriers);
+  updateRecapAdminSimple(ouvriers);
 }
 
-async function listerMoisDispo() {
-  // Parcourt toutes les heures, extrait les mois uniques existants
-  const heuresSnap = await db.collection("heures").get();
-  const moisSet = new Set();
-  heuresSnap.forEach(doc=>{
-    const d = doc.data();
-    if (d.timestamp) {
-      const date = d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp.seconds*1000);
-      const mois = ("0"+(date.getMonth()+1)).slice(-2) + "/" + date.getFullYear();
-      moisSet.add(mois);
-    }
-  });
-  return Array.from(moisSet).sort();
-}
-
-async function updateRecapAdmin(ouvriers) {
-  const typePeriode = document.getElementById('selectPeriode').value;
-  const periode = document.getElementById('selectSemaineAdmin').value;
-  let heuresSnap;
-  if (typePeriode === "semaine") {
-    heuresSnap = await db.collection("heures").where("semaine","==",periode).get();
-  } else {
-    heuresSnap = await db.collection("heures").get();
-  }
-
+async function updateRecapAdminSimple(ouvriers) {
+  const semaine = document.getElementById('selectSemaineAdmin').value;
+  const joursSem = joursSemaineAvecDates(semaine);
+  const heuresSnap = await db.collection("heures").where("semaine","==",semaine).get();
   let docsByOuvrier = {};
   heuresSnap.forEach(doc => {
     const d = doc.data();
-    if (typePeriode === "mois" && d.timestamp) {
-      const date = d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp.seconds*1000);
-      const moisDoc = ("0"+(date.getMonth()+1)).slice(-2) + "/" + date.getFullYear();
-      if (moisDoc === periode) {
-        if (!docsByOuvrier[d.ouvrier]) docsByOuvrier[d.ouvrier] = [];
-        docsByOuvrier[d.ouvrier].push(d);
-      }
-    } else if (typePeriode === "semaine" && d.ouvrier) {
-      docsByOuvrier[d.ouvrier] = [d];
-    }
+    if (d.ouvrier) docsByOuvrier[d.ouvrier] = [d];
   });
-
-  let jours = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
   let html = `<table>
     <tr>
       <th>Ouvrier</th>
-      <th>Total heures</th>
-      <th>Maladie</th>
-      <th>Congé</th>
-      <th>Formation</th>
+      ${joursSem.map(j=>`<th>${j.label}<br><span style="font-size:0.87em;color:#555">${j.date}</span></th>`).join("")}
+      <th>Total</th>
+      <th>Mal</th>
+      <th>Cng</th>
+      <th>F</th>
     </tr>`;
   ouvriers.forEach(nomOuvrier => {
     let rows = docsByOuvrier[nomOuvrier] || [];
+    let row = rows[0] || {};
     let totalHeures = 0, maladie = 0, conge = 0, formation = 0;
-    rows.forEach(row => {
-      jours.forEach(jour=>{
-        const val = row[jour];
-        if(val === "Maladie") maladie++;
-        else if(val === "Congé") conge++;
-        else if(val === "Formation") formation++;
-        else if(/^\d{1,2}:\d{2}$/.test(val)) {
-          const [h,m] = val.split(":").map(Number);
-          totalHeures += h + m/60;
-        }
-      });
+    html += `<tr><td>${nomOuvrier}</td>`;
+    joursSem.forEach(j => {
+      let val = row && row[j.key] ? row[j.key] : "";
+      html += `<td>${val ? val : ""}</td>`;
+      if(val === "Maladie") maladie++;
+      else if(val === "Congé") conge++;
+      else if(val === "Formation") formation++;
+      else if(/^\d{1,2}:\d{2}$/.test(val)) {
+        const [h,m] = val.split(":").map(Number);
+        totalHeures += h + m/60;
+      }
     });
-    html += `<tr>
-      <td>${nomOuvrier}</td>
-      <td><b>${formatHeures(totalHeures)}</b></td>
+    html += `<td>${formatHeures(totalHeures)}</td>
       <td>${maladie}</td>
       <td>${conge}</td>
       <td>${formation}</td>
@@ -366,8 +253,7 @@ async function updateRecapAdmin(ouvriers) {
   html += `</table>`;
   document.getElementById('tableAdminContainer').innerHTML = html;
 }
-
-function exportRecapAdmin() {
+function exportRecapAdminSimple() {
   const html = document.getElementById('tableAdminContainer').innerHTML;
   if (!html) return;
   const rows = Array.from(document.querySelectorAll('#tableAdminContainer table tr'));
@@ -380,4 +266,3 @@ function exportRecapAdmin() {
   link.click();
   document.body.removeChild(link);
 }
-
